@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import './ProductShowcase.css';
 import { allProducts } from '../data/products';
+import ProductCard from './ProductCard';
 
 const products = allProducts;
 
@@ -24,48 +25,13 @@ const ProductShowcase = ({ onProductClick, onAddToCart }: Props) => {
       </motion.div>
       
       <div className="product-grid">
-        {products.map((product, index) => (
-          <motion.div 
-            key={product.id} 
-            className="product-card"
-            initial={{ opacity: 0, y: 50 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-50px" }}
-            transition={{ duration: 0.5, delay: index * 0.15 }}
-            onClick={() => onProductClick && onProductClick({
-              id: product.id,
-              brand: product.name.split(' ')[0], // Dummy brand
-              name: product.name,
-              price: product.price,
-              image: product.image
-            })}
-          >
-            <div className="product-image-container">
-              <img src={product.image} alt={product.name} className="product-image" />
-              <button 
-                className="add-to-cart-quick"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (onAddToCart) {
-                    onAddToCart({
-                      id: product.id,
-                      brand: 'Giyim',
-                      name: product.name,
-                      price: product.price,
-                      image: product.image
-                    });
-                  }
-                }}
-              >
-                Sepete Ekle
-              </button>
-            </div>
-            <div className="product-info">
-              <span className="product-category">{product.category}</span>
-              <h3 className="product-name">{product.name}</h3>
-              <p className="product-price">{product.price}</p>
-            </div>
-          </motion.div>
+        {products.map((product) => (
+          <ProductCard 
+            key={product.id}
+            product={product}
+            onClick={onProductClick}
+            onAddToCart={onAddToCart}
+          />
         ))}
       </div>
     </section>

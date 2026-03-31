@@ -121,31 +121,7 @@
 .hero-nav-button.left { left: 2%; }
 .hero-nav-button.right { right: 2%; }
 
-.hero-indicators {
-  position: absolute;
-  bottom: 5%;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 12px;
-  z-index: 10;
-}
 
-.hero-indicator {
-  width: 40px;
-  height: 3px;
-  background: rgba(255,255,255,0.3);
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.hero-indicator.active {
-  background: #fff;
-}
-
-.hero-indicator:hover {
-  background: rgba(255,255,255,0.8);
-}
 
 @media (max-width: 768px) {
   .hero-nav-button {

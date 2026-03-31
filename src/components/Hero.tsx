@@ -3,34 +3,39 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import './Hero.css';
 
+import jordanImg from '../assets/hero/jordan.png';
+import adidasImg from '../assets/hero/adidas.png';
+import converseImg from '../assets/hero/converse.png';
+import nbImg from '../assets/hero/newbalance.png';
+
 const slides = [
   {
     id: 1,
-    image: 'https://cdn.myikas.com/images/theme-images/32b5f3c2-9da8-4ad9-9902-c51f12b16eb6/image_3840.webp',
-    title: 'NEW BALANCE 530',
-    subtitle: 'İkonik retro koşu silüetiyle sokak modasına yön ver.',
+    image: jordanImg,
+    title: 'JORDAN 1 HIGH',
+    subtitle: 'Limited edition collaboration that redefines street style.',
     buttonText: 'ŞİMDİ KEŞFET'
   },
   {
     id: 2,
-    image: 'https://cdn.myikas.com/images/theme-images/b2bd4d04-ced1-4b08-b2df-b149cba954b2/image_3840.webp',
-    title: 'NIKE KOLEKSİYONU',
-    subtitle: 'En güncel Nike modellerini ve klasik release\'leri yakala.',
-    buttonText: 'TÜMÜNÜ İNCELE'
+    image: adidasImg,
+    title: 'ADIDAS X BRAIN DEAD',
+    subtitle: 'A fusion of artistic graphics and performance gear.',
+    buttonText: 'KOLEKSİYONU GÖR'
   },
   {
     id: 3,
-    image: 'https://cdn.myikas.com/images/theme-images/1a9fda3b-f1e3-4ed6-aa66-f90f8a3fc9bf/image_3840.webp',
-    title: 'ASICS GEL SERİSİ',
-    subtitle: 'Konfor ve performansı bir arada sunan özel tasarımlar.',
-    buttonText: 'ALIŞVERİŞE BAŞLA'
+    image: converseImg,
+    title: 'CONVERSE MODERN',
+    subtitle: 'Clean lines for the contemporary trendsetter.',
+    buttonText: 'TÜMÜNÜ İNCELE'
   },
   {
     id: 4,
-    image: 'https://cdn.myikas.com/images/theme-images/86ddc9bc-20e6-401e-b818-896589688f09/image_3840.webp',
-    title: 'ERKEK GİYİM',
-    subtitle: 'Sokak stilini tamamlayacak premium markalar tek çatı altında.',
-    buttonText: 'GİYİMİ KEŞFET'
+    image: nbImg,
+    title: 'NEW BALANCE LUXURY',
+    subtitle: 'High-end craftsmanship meets unparalleled comfort.',
+    buttonText: 'ALIŞVERİŞE BAŞLA'
   }
 ];
 
@@ -108,15 +113,7 @@ const Hero = () => {
         <ChevronRight size={36} color="white" />
       </button>
 
-      <div className="hero-indicators">
-        {slides.map((_, index) => (
-          <div 
-            key={index} 
-            className={`hero-indicator ${index === currentSlide ? 'active' : ''}`}
-            onClick={() => setCurrentSlide(index)}
-          />
-        ))}
-      </div>
+
     </section>
   );
 };

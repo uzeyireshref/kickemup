@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
-import { motion } from 'framer-motion';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 import './ProductSlider.css';
+import ProductCard from './ProductCard';
 
 export interface Product {
   id: string | number;
@@ -15,9 +15,10 @@ interface ProductSliderProps {
   title: string;
   products: Product[];
   onProductClick?: (product: Product) => void;
+  onAddToCart?: (product: any) => void;
 }
 
-const ProductSlider: React.FC<ProductSliderProps> = ({ title, products, onProductClick }) => {
+const ProductSlider: React.FC<ProductSliderProps> = ({ title, products, onProductClick, onAddToCart }) => {
   const sliderRef = useRef<HTMLDivElement>(null);
 
   const slide = (direction: 'left' | 'right') => {
@@ -38,25 +39,15 @@ const ProductSlider: React.FC<ProductSliderProps> = ({ title, products, onProduc
       
       <div className="slider-wrapper">
         <div className="slider-container" ref={sliderRef}>
-        {products.map((product, index) => (
-          <motion.div 
-            key={product.id} 
-            className="slider-card"
-            initial={{ opacity: 0, x: 50 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true, margin: "-50px" }}
-            transition={{ duration: 0.5, delay: index * 0.1 }}
-            onClick={() => onProductClick && onProductClick(product)}
-          >
-            <div className="slider-image-container">
-              <img src={product.image} alt={product.name} className="slider-image" />
-            </div>
-            <div className="slider-info">
-              <span className="slider-brand">{product.brand}</span>
-              <h3 className="slider-name">{product.name}</h3>
-              <p className="slider-price">{product.price}</p>
-            </div>
-          </motion.div>
+        {products.map((product) => (
+          <div className="slider-card-wrap" key={product.id}>
+             <ProductCard 
+               product={product as any} 
+               onClick={onProductClick as any} 
+               onAddToCart={onAddToCart} 
+               layoutType="slider" 
+             />
+          </div>
         ))}
         </div>
         

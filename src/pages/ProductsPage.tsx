@@ -3,9 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronUp, SlidersHorizontal, X, Check } from 'lucide-react';
 import './ProductsPage.css';
 import { allProducts } from '../data/products';
+import ProductCard from '../components/ProductCard';
 
 interface ProductsPageProps {
   onProductClick: (product: any) => void;
+  onAddToCart?: (product: any) => void;
 }
 
 const filterCategories = [
@@ -98,7 +100,7 @@ function parsePrice(priceStr: string): number {
   return parseFloat(priceStr.replace(/[^0-9,]/g, '').replace(',', '.')) || 0;
 }
 
-const ProductsPage: React.FC<ProductsPageProps> = ({ onProductClick }) => {
+const ProductsPage: React.FC<ProductsPageProps> = ({ onProductClick, onAddToCart }) => {
   const [openAccordions, setOpenAccordions] = useState<string[]>(['marka']);
   const [selectedFilters, setSelectedFilters] = useState<Record<string, string[]>>({});
   const [sortValue, setSortValue] = useState('featured');
@@ -345,23 +347,15 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onProductClick }) => {
             )}
           </div>
           <div className="products-grid">
-            {filteredProducts.map(product => {
-              const brand = product.brand || product.name.split(' ')[0];
-              return (
-                <div
-                  key={product.id}
-                  className="product-card-wunder"
-                  onClick={() => onProductClick(product)}
-                >
-                  <div className="product-image-wrap">
-                    <img src={product.image} alt={product.name} loading="lazy" />
-                  </div>
-                  <div className="product-brand">{brand}</div>
-                  <div className="product-name">{product.name}</div>
-                  <div className="product-price">{product.price}</div>
-                </div>
-              );
-            })}
+            {filteredProducts.map(product => (
+              <ProductCard 
+                key={product.id}
+                product={product}
+                onClick={onProductClick}
+                onAddToCart={onAddToCart}
+                layoutType="grid"
+              />
+            ))}
           </div>
         </section>
       </div>

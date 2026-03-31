@@ -15,7 +15,7 @@ const Home = ({ onProductClick, onAddToCart }: HomeProps) => {
   return (
     <main>
       <Hero />
-      <ProductSlider title="Yeni Gelen Sneaker'lar" products={sneakers} onProductClick={onProductClick} />
+      <ProductSlider title="Yeni Gelen Sneaker'lar" products={sneakers} onProductClick={onProductClick} onAddToCart={onAddToCart} />
       <Categories />
       <ProductShowcase onProductClick={onProductClick} onAddToCart={onAddToCart} />
     </main>
