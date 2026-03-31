@@ -1,8 +1,7 @@
 import Hero from '../components/Hero';
-import ProductShowcase from '../components/ProductShowcase';
 import ProductSlider from '../components/ProductSlider';
 import Categories from '../components/Categories';
-import { sneakers } from '../data/products';
+import { sneakers, allProducts } from '../data/products';
 
 
 
@@ -12,12 +11,24 @@ interface HomeProps {
 }
 
 const Home = ({ onProductClick, onAddToCart }: HomeProps) => {
+  const latestProducts = [...allProducts].reverse();
+
   return (
     <main>
       <Hero />
-      <ProductSlider title="Yeni Gelen Sneaker'lar" products={sneakers} onProductClick={onProductClick} onAddToCart={onAddToCart} />
+      <ProductSlider 
+        title="Yeni Gelen Sneaker'lar" 
+        products={sneakers} 
+        onProductClick={onProductClick} 
+        onAddToCart={onAddToCart} 
+      />
       <Categories />
-      <ProductShowcase onProductClick={onProductClick} onAddToCart={onAddToCart} />
+      <ProductSlider 
+        title="En Son Eklenenler" 
+        products={latestProducts} 
+        onProductClick={onProductClick} 
+        onAddToCart={onAddToCart} 
+      />
     </main>
   );
 };
