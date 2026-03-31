@@ -116,7 +116,11 @@ function App() {
       )}
       
       {currentView === 'products' && (
-        <ProductsPage onProductClick={handleProductClick} onAddToCart={handleAddToCart} />
+        <ProductsPage 
+          key={window.location.search}
+          onProductClick={handleProductClick} 
+          onAddToCart={handleAddToCart} 
+        />
       )}
       
       {currentView === 'detail' && (

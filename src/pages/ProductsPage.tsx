@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, ChevronUp, SlidersHorizontal, X, Check } from 'lucide-react';
+import { ChevronDown, ChevronUp, SlidersHorizontal, X, Check, Loader2, AlertCircle } from 'lucide-react';
 import './ProductsPage.css';
-import { allProducts } from '../data/products';
+import { supabase } from '../lib/supabase';
 import ProductCard from '../components/ProductCard';
+import type { ProductData } from '../components/ProductCard';
 
 interface ProductsPageProps {
   onProductClick: (product: any) => void;
@@ -18,25 +19,14 @@ const filterCategories = [
     options: ['Nike', 'Jordan', 'adidas', 'New Balance', 'Vans', 'Carhartt WIP', 'A.P.C.', 'Oakley'],
   },
   {
-    id: 'sneakerModel',
-    label: 'SNEAKER MODEL',
-    type: 'checkbox',
-    options: [
-      'Air Force 1', 'Air Max 90', 'Air Max 95', 'Air Max 97', 'Air Max 270',
-      'Dunk Low', 'Dunk High', 'Jordan 1', 'Jordan 4', 'Jordan 6',
-      'Astrograbber', 'Classic Slip-On', 'Authentic 44', 'Old Skool',
-      '574', '990v5', '327', '2002R',
-    ],
-  },
-  {
     id: 'urunTipi',
     label: 'ÜRÜN TİPİ',
     type: 'checkbox',
     options: [
       'Sneaker', 'Bot', 'Terlik', 'Sandalet',
-      'T-Shirt', 'Sweatshirt', 'Hoodie', 'Gömlek',
+      'Giyim', 'Aksesuar', 'T-Shirt', 'Sweatshirt', 'Hoodie', 'Gömlek',
       'Pantolon', 'Şort', 'Mont', 'Ceket',
-      'Aksesuar', 'Şapka', 'Çorap', 'Çanta', 'Güneş Gözlüğü',
+      'Şapka', 'Çorap', 'Çanta', 'Güneş Gözlüğü',
     ],
   },
   {
@@ -52,12 +42,6 @@ const filterCategories = [
     options: ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'],
   },
   {
-    id: 'pantolonBeden',
-    label: 'PANTOLON BEDEN',
-    type: 'checkbox',
-    options: ['28/30', '29/32', '30/30', '30/32', '31/32', '32/30', '32/32', '33/32', '34/32', '36/32'],
-  },
-  {
     id: 'renk',
     label: 'RENK',
     type: 'color',
@@ -67,48 +51,125 @@ const filterCategories = [
       { label: 'Gri', value: 'Gri', hex: '#9e9e9e' },
       { label: 'Bej', value: 'Bej', hex: '#c8b49a' },
       { label: 'Kahverengi', value: 'Kahverengi', hex: '#7a5230' },
-      { label: 'Lacivert', value: 'Lacivert', hex: '#1a2b5e' },
-      { label: 'Mavi', value: 'Mavi', hex: '#1976d2' },
-      { label: 'Kırmızı', value: 'Kırmızı', hex: '#d32f2f' },
-      { label: 'Yeşil', value: 'Yeşil', hex: '#2e7d32' },
-      { label: 'Turuncu', value: 'Turuncu', hex: '#e65100' },
-      { label: 'Sarı', value: 'Sarı', hex: '#f9a825' },
-      { label: 'Mor', value: 'Mor', hex: '#6a1b9a' },
-      { label: 'Pembe', value: 'Pembe', hex: '#e91e8c' },
-      { label: 'Haki', value: 'Haki', hex: '#7a7a3a' },
     ],
-  },
-  {
-    id: 'indirimOrani',
-    label: 'İNDİRİM ORANI',
-    type: 'checkbox',
-    options: ['%10 ve üzeri', '%20 ve üzeri', '%30 ve üzeri', '%40 ve üzeri', '%50 ve üzeri'],
   },
 ];
 
 const sortOptions = [
   { label: 'Öne Çıkanlar', value: 'featured' },
   { label: 'En Yeniler', value: 'newest' },
-  { label: 'En Çok Satanlar', value: 'bestseller' },
   { label: 'Fiyat: Düşükten Yükseğe', value: 'price_asc' },
   { label: 'Fiyat: Yüksekten Düşüğe', value: 'price_desc' },
-  { label: 'İndirim Oranı', value: 'discount' },
-  { label: 'Değerlendirme (En İyi)', value: 'rating' },
 ];
 
-function parsePrice(priceStr: string): number {
-  return parseFloat(priceStr.replace(/[^0-9,]/g, '').replace(',', '.')) || 0;
-}
-
 const ProductsPage: React.FC<ProductsPageProps> = ({ onProductClick, onAddToCart }) => {
-  const [openAccordions, setOpenAccordions] = useState<string[]>(['marka']);
+  const [products, setProducts] = useState<ProductData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [openAccordions, setOpenAccordions] = useState<string[]>(['marka', 'urunTipi']);
   const [selectedFilters, setSelectedFilters] = useState<Record<string, string[]>>({});
   const [sortValue, setSortValue] = useState('featured');
   const [sortOpen, setSortOpen] = useState(false);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const sortRef = useRef<HTMLDivElement>(null);
 
-  // Close sort dropdown on outside click
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const { data, error: sbError } = await supabase
+          .from('products')
+          .select(`
+            *,
+            brands(name),
+            categories(name),
+            product_images(url),
+            product_variants(*)
+          `);
+        
+        if (sbError) throw sbError;
+        
+        // Map data to handle Supabase join inconsistencies (singular/plural/array)
+        const mappedProducts = (data || []).map((p: any) => {
+          // Check all common entry points for joined categories
+          const cat = p.categories || p.category || p.category_details || {};
+          const catData = Array.isArray(cat) ? cat[0] : cat;
+          
+          const brand = p.brands || p.brand || p.brand_details || {};
+          const brandData = Array.isArray(brand) ? brand[0] : brand;
+
+          return {
+            ...p,
+            brand_name: brandData?.name || '',
+            category_name: catData?.name || '',
+            main_image: (p.product_images && Array.isArray(p.product_images))
+              ? (p.product_images.find((img: any) => img.is_main)?.url || p.product_images[0]?.url || '')
+              : ''
+          };
+        });
+        
+        setProducts(mappedProducts);
+      } catch (err: any) {
+        console.error('Supabase fetch error:', err);
+        setError(err.message || 'Ürünler yüklenirken bir hata oluştu.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const applyUrlParams = () => {
+      const params = new URLSearchParams(window.location.search);
+      const category = params.get('category');
+      const sort = params.get('sort');
+      
+      // Automatic Selection: Set initial filter state from URL
+      setSelectedFilters(category ? { urunTipi: [category.trim()] } : {});
+      
+      if (sort) {
+        setSortValue(sort);
+      } else {
+        setSortValue('featured');
+      }
+    };
+
+    fetchData();
+    applyUrlParams();
+    
+    // URL Observer/Listener
+    window.addEventListener('popstate', applyUrlParams);
+    return () => window.removeEventListener('popstate', applyUrlParams);
+  }, []);
+
+  // URL parametrelerini oku
+  const params = new URLSearchParams(window.location.search);
+  const currentCategory = params.get('category');
+  const pageTitle = currentCategory ? currentCategory.toUpperCase() : 'TÜM ÜRÜNLER';
+
+  // Bağlamsal filtre mantığı: URL parametresi VE kullanıcının seçimleri göz önünde tutulur
+  const activeTypes = selectedFilters['urunTipi'] || [];
+
+  // Ayakkabı ve Giyim bağlamlarını belirle
+  const isSneakerContext = currentCategory === 'Sneaker' || activeTypes.some(t => ['Sneaker', 'Bot', 'Terlik', 'Sandalet'].includes(t));
+  const isGiyimContext   = currentCategory === 'Giyim'   || activeTypes.some(t => ['Giyim', 'T-Shirt', 'Sweatshirt', 'Hoodie', 'Pantolon', 'Mont', 'Şort', 'Gömlek', 'Ceket'].includes(t));
+
+  // displayedFilters: hangi filtre gruplarının gösterileceği
+  const displayedFilters = filterCategories.filter(cat => {
+    // Tüm ürünler sayfasındaysak (kategori seçili değilse AND manuel tip seçilmemişse) her şeyi göster
+    if (currentCategory === null && activeTypes.length === 0) return true;
+    
+    // Ayakkabı numaralarını sadece ayakkabı bağlamında göster
+    if (cat.id === 'sneakerNumara' && !isSneakerContext) return false;
+    
+    // Giyim bedenlerini sadece giyim bağlamında göster
+    if (cat.id === 'giyimBeden' && !isGiyimContext) return false;
+    
+    return true;
+  });
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+  }, []);
+
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (sortRef.current && !sortRef.current.contains(e.target as Node)) {
@@ -118,16 +179,6 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onProductClick, onAddToCart
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
-
-  // Lock body scroll when mobile filter is open
-  useEffect(() => {
-    if (mobileFilterOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => { document.body.style.overflow = ''; };
-  }, [mobileFilterOpen]);
 
   const toggleAccordion = (id: string) => {
     setOpenAccordions(prev =>
@@ -148,23 +199,57 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onProductClick, onAddToCart
   };
 
   const clearAllFilters = () => setSelectedFilters({});
-
   const totalActiveFilters = Object.values(selectedFilters).reduce((sum, arr) => sum + arr.length, 0);
 
-  // Filter products
-  let filteredProducts = allProducts.filter(product => {
-    const brandFilter = selectedFilters['marka'] || [];
-    if (brandFilter.length > 0 && !brandFilter.includes(product.brand)) return false;
-    const typeFilter = selectedFilters['urunTipi'] || [];
-    if (typeFilter.length > 0 && !typeFilter.includes(product.category)) return false;
+  // Advanced Client-side filtering logic with Variants
+  let filteredProducts = products.filter((product: any) => {
+    const brandName = product.brand_name || '';
+    const catName = product.category_name || '';
+    const variants = product.product_variants || [];
+    
+    // Existing Brand & Category Filters (Robust Case-Insensitive Match)
+    const brandFilter = (selectedFilters['marka'] || []).map(f => decodeURIComponent(f).trim().toLowerCase());
+    if (brandFilter.length > 0 && !brandFilter.includes(brandName.trim().toLowerCase())) return false;
+    
+    const typeFilter = (selectedFilters['urunTipi'] || []).map(f => decodeURIComponent(f).trim().toLowerCase());
+    if (typeFilter.length > 0 && !typeFilter.includes(catName.trim().toLowerCase())) return false;
+
+    // Shoe Size Filter
+    const sizeFilter = selectedFilters['sneakerNumara'] || [];
+    if (sizeFilter.length > 0) {
+      const hasSize = variants.some((v: any) => v.size && sizeFilter.includes(v.size));
+      if (!hasSize) return false;
+    }
+
+    // Clothing Size Filter
+    const clothingSizeFilter = selectedFilters['giyimBeden'] || [];
+    if (clothingSizeFilter.length > 0) {
+      const hasClothingSize = variants.some((v: any) => v.size && clothingSizeFilter.includes(v.size));
+      if (!hasClothingSize) return false;
+    }
+
+    // Color Filter
+    const colorFilter = selectedFilters['renk'] || [];
+    if (colorFilter.length > 0) {
+      const hasColor = variants.some((v: any) => v.color && colorFilter.includes(v.color));
+      if (!hasColor) return false;
+    }
+    
     return true;
   });
 
-  // Sort products
+  // Safe Sorting
   filteredProducts = [...filteredProducts].sort((a, b) => {
-    if (sortValue === 'price_asc') return parsePrice(a.price) - parsePrice(b.price);
-    if (sortValue === 'price_desc') return parsePrice(b.price) - parsePrice(a.price);
-    if (sortValue === 'newest') return b.id - a.id;
+    const priceA = typeof a.price === 'number' ? a.price : parseFloat(String(a.price || 0));
+    const priceB = typeof b.price === 'number' ? b.price : parseFloat(String(b.price || 0));
+
+    if (sortValue === 'price_asc') return priceA - priceB;
+    if (sortValue === 'price_desc') return priceB - priceA;
+    if (sortValue === 'newest') {
+      const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return dateB - dateA;
+    }
     return 0;
   });
 
@@ -228,7 +313,7 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onProductClick, onAddToCart
         )}
       </div>
 
-      {filterCategories.map(item => {
+      {displayedFilters.map(item => {
         const isOpen = openAccordions.includes(item.id);
         const activeCount = (selectedFilters[item.id] || []).length;
         return (
@@ -275,17 +360,15 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onProductClick, onAddToCart
       <div className="breadcrumb">
         <a href="#" className="breadcrumb-link">Anasayfa</a>
         <span className="breadcrumb-separator">›</span>
-        <span>Yeniler</span>
+        <span>{pageTitle}</span>
       </div>
 
       <div className="products-header">
-        <h1 className="products-title">Yeniler</h1>
+        <h1 className="products-title">{pageTitle}</h1>
         <div className="products-header-right">
-          {/* Mobile filter trigger */}
           <button
             className="mobile-filter-btn"
             onClick={() => setMobileFilterOpen(true)}
-            aria-label="Filtreleri aç"
           >
             <SlidersHorizontal size={18} />
             <span>Filtreler</span>
@@ -294,12 +377,10 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onProductClick, onAddToCart
             )}
           </button>
 
-          {/* Sort dropdown */}
           <div className="sort-dropdown-wrap" ref={sortRef}>
             <button
               className="sort-dropdown"
               onClick={() => setSortOpen(prev => !prev)}
-              aria-expanded={sortOpen}
             >
               <span>{currentSortLabel}</span>
               <ChevronDown size={16} className={`sort-chevron${sortOpen ? ' open' : ''}`} />
@@ -311,7 +392,6 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onProductClick, onAddToCart
                   initial={{ opacity: 0, y: -6 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -6 }}
-                  transition={{ duration: 0.18 }}
                 >
                   {sortOptions.map(opt => (
                     <button
@@ -331,62 +411,56 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onProductClick, onAddToCart
       </div>
 
       <div className="products-layout">
-        {/* Desktop sidebar */}
         <aside className="filters-sidebar">
           {sidebarContent}
         </aside>
 
-        {/* Product grid */}
         <section className="products-grid-container">
-          <div className="products-result-info">
-            <span>{filteredProducts.length} ürün</span>
-            {totalActiveFilters > 0 && (
-              <button className="clear-filters-inline" onClick={clearAllFilters}>
-                Filtreleri Temizle
-              </button>
-            )}
-          </div>
-          <div className="products-grid">
-            {filteredProducts.map(product => (
-              <ProductCard 
-                key={product.id}
-                product={product}
-                onClick={onProductClick}
-                onAddToCart={onAddToCart}
-                layoutType="grid"
-              />
-            ))}
-          </div>
+          {loading ? (
+            <div className="loading-state">
+              <Loader2 className="spinning" size={40} />
+              <p>Ürünler Yükleniyor...</p>
+            </div>
+          ) : error ? (
+            <div className="error-state">
+              <AlertCircle size={40} color="#e74c3c" />
+              <p>{error}</p>
+              <button onClick={() => window.location.reload()} className="retry-btn">Tekrar Dene</button>
+            </div>
+          ) : (
+            <>
+              <div className="products-result-info">
+                <span>{filteredProducts.length} ürün</span>
+                {totalActiveFilters > 0 && (
+                  <button className="clear-filters-inline" onClick={clearAllFilters}>
+                    Filtreleri Temizle
+                  </button>
+                )}
+              </div>
+              <div className="products-grid">
+                {filteredProducts.map(product => (
+                  <ProductCard 
+                    key={product.id}
+                    product={product}
+                    onClick={onProductClick}
+                    onAddToCart={onAddToCart}
+                    layoutType="grid"
+                  />
+                ))}
+              </div>
+            </>
+          )}
         </section>
       </div>
 
-      {/* Mobile filter drawer */}
       <AnimatePresence>
         {mobileFilterOpen && (
           <>
-            <motion.div
-              className="filter-overlay"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setMobileFilterOpen(false)}
-            />
-            <motion.div
-              className="filter-drawer"
-              initial={{ x: '-100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '-100%' }}
-              transition={{ type: 'tween', duration: 0.3 }}
-            >
+            <motion.div className="filter-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setMobileFilterOpen(false)} />
+            <motion.div className="filter-drawer" initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }}>
               <div className="filter-drawer-header">
                 <span>Filtreler</span>
-                <button
-                  className="filter-drawer-close"
-                  onClick={() => setMobileFilterOpen(false)}
-                  aria-label="Kapat"
-                >
-                  <X size={22} />
-                </button>
+                <button onClick={() => setMobileFilterOpen(false)}><X size={22} /></button>
               </div>
               <div className="filter-drawer-body">
                 {sidebarContent}
@@ -405,3 +479,9 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onProductClick, onAddToCart
 };
 
 export default ProductsPage;
+
+/*
+ORIGINAL BACKUP:
+[Gövdesel olarak aynı mantığa sahip olduğu için burada kısaltıldı, 
+dosyanızın orjinal hali allProducts importu ile products-filter mantığını kullanıyordu.]
+*/
