@@ -1,0 +1,47 @@
+@import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  --color-bg: #FCFCFC;
+  --color-text: #1a1a1a;
+  --color-text-light: #666;
+  --color-accent: #000;
+  --color-border: #E5E5E5;
+  --font-heading: 'Kanit', sans-serif;
+  --font-body: 'Kanit', sans-serif;
+  --transition-smooth: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  /* 
+    Pro tip: this dynamic padding acts like a magic container centering 
+    items horizontally with a max-width of 1280px!
+  */
+  --max-width-padding: max(8%, calc((100vw - 1280px) / 2));
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+ul {
+  list-style: none;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
