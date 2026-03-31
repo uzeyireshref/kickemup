@@ -3,10 +3,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import './Hero.css';
 
-import jordanImg from '../assets/hero/jordan.png';
-import adidasImg from '../assets/hero/adidas.png';
-import converseImg from '../assets/hero/converse.png';
-import nbImg from '../assets/hero/newbalance.png';
+import jordanImg from '../assets/hero/jordan.jpg';
+import adidasImg from '../assets/hero/adidas.webp';
+import converseImg from '../assets/hero/converse.webp';
+import nbImg from '../assets/hero/new-balance.jpg';
 
 const slides = [
   {
