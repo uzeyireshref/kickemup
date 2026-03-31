@@ -1,27 +1,22 @@
 import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import Navbar from './Navbar';
 import { ShoppingBag, Menu as MenuIcon, X, User, Search } from 'lucide-react';
 import './Header.css';
 
 interface HeaderProps {
-  onLogoClick?: () => void;
-  onNavigate?: (view: string) => void;
   cartCount?: number;
   onCartClick?: () => void;
-  onUserClick?: () => void;
-  isTransparent?: boolean;
 }
 
 const Header: React.FC<HeaderProps> = ({ 
-  onLogoClick, 
-  onNavigate,
   cartCount = 0, 
-  onCartClick, 
-  onUserClick,
-  isTransparent = false
+  onCartClick
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -33,13 +28,15 @@ const Header: React.FC<HeaderProps> = ({
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
-  const headerClass = (isTransparent && !isScrolled) ? 'transparent' : 'scrolled';
+  // Transparency logic synchronized with current path
+  const isHome = location.pathname === '/';
+  const headerClass = (isHome && !isScrolled) ? 'transparent' : 'scrolled';
 
   return (
     <header className={`header ${headerClass}`}>
       <div className="header-left">
-        <div className="logo" onClick={onLogoClick} style={{ cursor: 'pointer' }}>KICKEMUP</div>
-        <Navbar isOpen={isMenuOpen} onNavigate={onNavigate} />
+        <Link to="/" className="logo">KICKEMUP</Link>
+        <Navbar isOpen={isMenuOpen} />
       </div>
       
       <div className="header-right">
@@ -52,9 +49,9 @@ const Header: React.FC<HeaderProps> = ({
           <button className="cart-btn mobile-search-btn" aria-label="Arama">
             <Search size={24} strokeWidth={1.5} className="cart-icon" />
           </button>
-          <button className="cart-btn" aria-label="Hesabım" onClick={onUserClick}>
+          <Link to="/login" className="cart-btn" aria-label="Hesabım">
             <User size={24} strokeWidth={1.5} className="cart-icon" />
-          </button>
+          </Link>
           <button className="cart-btn" aria-label="Sepet" onClick={onCartClick}>
             <div style={{ position: 'relative', display: 'flex' }}>
               <ShoppingBag size={24} strokeWidth={1.5} className="cart-icon" />

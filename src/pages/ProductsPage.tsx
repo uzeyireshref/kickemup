@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useSearchParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronUp, SlidersHorizontal, X, Check, Loader2, AlertCircle } from 'lucide-react';
 import './ProductsPage.css';
@@ -7,7 +8,6 @@ import ProductCard from '../components/ProductCard';
 import type { ProductData } from '../components/ProductCard';
 
 interface ProductsPageProps {
-  onProductClick: (product: any) => void;
   onAddToCart?: (product: any) => void;
 }
 
@@ -62,7 +62,8 @@ const sortOptions = [
   { label: 'Fiyat: Yüksekten Düşüğe', value: 'price_desc' },
 ];
 
-const ProductsPage: React.FC<ProductsPageProps> = ({ onProductClick, onAddToCart }) => {
+const ProductsPage: React.FC<ProductsPageProps> = ({ onAddToCart }) => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState<ProductData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -89,12 +90,9 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onProductClick, onAddToCart
         
         if (sbError) throw sbError;
         
-        // Map data to handle Supabase join inconsistencies (singular/plural/array)
         const mappedProducts = (data || []).map((p: any) => {
-          // Check all common entry points for joined categories
           const cat = p.categories || p.category || p.category_details || {};
           const catData = Array.isArray(cat) ? cat[0] : cat;
-          
           const brand = p.brands || p.brand || p.brand_details || {};
           const brandData = Array.isArray(brand) ? brand[0] : brand;
 
@@ -117,58 +115,50 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onProductClick, onAddToCart
       }
     };
 
-    const applyUrlParams = () => {
-      const params = new URLSearchParams(window.location.search);
-      const category = params.get('category');
-      const sort = params.get('sort');
-      
-      // Automatic Selection: Set initial filter state from URL
-      setSelectedFilters(category ? { urunTipi: [category.trim()] } : {});
-      
-      if (sort) {
-        setSortValue(sort);
-      } else {
-        setSortValue('featured');
-      }
-    };
-
     fetchData();
-    applyUrlParams();
-    
-    // URL Observer/Listener
-    window.addEventListener('popstate', applyUrlParams);
-    return () => window.removeEventListener('popstate', applyUrlParams);
   }, []);
 
-  // URL parametrelerini oku
-  const params = new URLSearchParams(window.location.search);
-  const currentCategory = params.get('category');
-  const pageTitle = currentCategory ? currentCategory.toUpperCase() : 'TÜM ÜRÜNLER';
+  useEffect(() => {
+    const category = searchParams.get('category');
+    const sort = searchParams.get('sort');
+    
+    // Synchronize urunTipi with category parameter
+    setSelectedFilters(prev => {
+      const currentUrunTipi = prev.urunTipi || [];
+      const urunTipiOptions = filterCategories.find(c => c.id === 'urunTipi')?.options as string[];
 
-  // Bağlamsal filtre mantığı: URL parametresi VE kullanıcının seçimleri göz önünde tutulur
+      if (category) {
+        // If they differ, update
+        if (currentUrunTipi.length !== 1 || currentUrunTipi[0] !== category) {
+          return { ...prev, urunTipi: [category] };
+        }
+      } else if (currentUrunTipi.length === 1 && urunTipiOptions?.includes(currentUrunTipi[0])) {
+        // If category parameter is removed but we have a single urunTipi filter 
+        // that matches a category, clear it.
+        const { urunTipi: _, ...rest } = prev;
+        return rest;
+      }
+      return prev;
+    });
+
+    if (sort) {
+      setSortValue(sort);
+    }
+  }, [searchParams]);
+
+  const currentCategory = searchParams.get('category');
+  const pageTitle = currentCategory ? currentCategory.toUpperCase() : 'TÜM ÜRÜNLER';
   const activeTypes = selectedFilters['urunTipi'] || [];
 
-  // Ayakkabı ve Giyim bağlamlarını belirle
   const isSneakerContext = currentCategory === 'Sneaker' || activeTypes.some(t => ['Sneaker', 'Bot', 'Terlik', 'Sandalet'].includes(t));
   const isGiyimContext   = currentCategory === 'Giyim'   || activeTypes.some(t => ['Giyim', 'T-Shirt', 'Sweatshirt', 'Hoodie', 'Pantolon', 'Mont', 'Şort', 'Gömlek', 'Ceket'].includes(t));
 
-  // displayedFilters: hangi filtre gruplarının gösterileceği
   const displayedFilters = filterCategories.filter(cat => {
-    // Tüm ürünler sayfasındaysak (kategori seçili değilse AND manuel tip seçilmemişse) her şeyi göster
-    if (currentCategory === null && activeTypes.length === 0) return true;
-    
-    // Ayakkabı numaralarını sadece ayakkabı bağlamında göster
+    if (!currentCategory && activeTypes.length === 0) return true;
     if (cat.id === 'sneakerNumara' && !isSneakerContext) return false;
-    
-    // Giyim bedenlerini sadece giyim bağlamında göster
     if (cat.id === 'giyimBeden' && !isGiyimContext) return false;
-    
     return true;
   });
-
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
-  }, []);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -189,56 +179,53 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onProductClick, onAddToCart
   const handleFilterToggle = (filterId: string, option: string) => {
     setSelectedFilters(prev => {
       const current = prev[filterId] || [];
-      return {
-        ...prev,
-        [filterId]: current.includes(option)
-          ? current.filter(o => o !== option)
-          : [...current, option],
-      };
+      const isExist = current.includes(option);
+      const next = isExist ? current.filter(o => o !== option) : [...current, option];
+      
+      // Update URL if urunTipi is changed
+      if (filterId === 'urunTipi') {
+        const newParams = new URLSearchParams(searchParams);
+        if (next.length === 1) {
+          newParams.set('category', next[0]);
+        } else {
+          newParams.delete('category');
+        }
+        setSearchParams(newParams);
+      }
+      
+      return { ...prev, [filterId]: next };
     });
   };
 
-  const clearAllFilters = () => setSelectedFilters({});
+  const clearAllFilters = () => {
+    setSelectedFilters({});
+    setSearchParams({});
+  };
   const totalActiveFilters = Object.values(selectedFilters).reduce((sum, arr) => sum + arr.length, 0);
 
-  // Advanced Client-side filtering logic with Variants
   let filteredProducts = products.filter((product: any) => {
     const brandName = product.brand_name || '';
     const catName = product.category_name || '';
     const variants = product.product_variants || [];
     
-    // Existing Brand & Category Filters (Robust Case-Insensitive Match)
-    const brandFilter = (selectedFilters['marka'] || []).map(f => decodeURIComponent(f).trim().toLowerCase());
-    if (brandFilter.length > 0 && !brandFilter.includes(brandName.trim().toLowerCase())) return false;
+    const brandFilter = (selectedFilters['marka'] || []).map(f => f.toLowerCase());
+    if (brandFilter.length > 0 && !brandFilter.includes(brandName.toLowerCase())) return false;
     
-    const typeFilter = (selectedFilters['urunTipi'] || []).map(f => decodeURIComponent(f).trim().toLowerCase());
-    if (typeFilter.length > 0 && !typeFilter.includes(catName.trim().toLowerCase())) return false;
+    const typeFilter = (selectedFilters['urunTipi'] || []).map(f => f.toLowerCase());
+    if (typeFilter.length > 0 && !typeFilter.includes(catName.toLowerCase())) return false;
 
-    // Shoe Size Filter
     const sizeFilter = selectedFilters['sneakerNumara'] || [];
-    if (sizeFilter.length > 0) {
-      const hasSize = variants.some((v: any) => v.size && sizeFilter.includes(v.size));
-      if (!hasSize) return false;
-    }
+    if (sizeFilter.length > 0 && !variants.some((v: any) => v.size && sizeFilter.includes(v.size))) return false;
 
-    // Clothing Size Filter
     const clothingSizeFilter = selectedFilters['giyimBeden'] || [];
-    if (clothingSizeFilter.length > 0) {
-      const hasClothingSize = variants.some((v: any) => v.size && clothingSizeFilter.includes(v.size));
-      if (!hasClothingSize) return false;
-    }
+    if (clothingSizeFilter.length > 0 && !variants.some((v: any) => v.size && clothingSizeFilter.includes(v.size))) return false;
 
-    // Color Filter
     const colorFilter = selectedFilters['renk'] || [];
-    if (colorFilter.length > 0) {
-      const hasColor = variants.some((v: any) => v.color && colorFilter.includes(v.color));
-      if (!hasColor) return false;
-    }
+    if (colorFilter.length > 0 && !variants.some((v: any) => v.color && colorFilter.includes(v.color))) return false;
     
     return true;
   });
 
-  // Safe Sorting
   filteredProducts = [...filteredProducts].sort((a, b) => {
     const priceA = typeof a.price === 'number' ? a.price : parseFloat(String(a.price || 0));
     const priceB = typeof b.price === 'number' ? b.price : parseFloat(String(b.price || 0));
@@ -358,7 +345,7 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onProductClick, onAddToCart
       exit={{ opacity: 0 }}
     >
       <div className="breadcrumb">
-        <a href="#" className="breadcrumb-link">Anasayfa</a>
+        <Link to="/" className="breadcrumb-link">Anasayfa</Link>
         <span className="breadcrumb-separator">›</span>
         <span>{pageTitle}</span>
       </div>
@@ -442,7 +429,6 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onProductClick, onAddToCart
                   <ProductCard 
                     key={product.id}
                     product={product}
-                    onClick={onProductClick}
                     onAddToCart={onAddToCart}
                     layoutType="grid"
                   />
@@ -479,9 +465,3 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onProductClick, onAddToCart
 };
 
 export default ProductsPage;
-
-/*
-ORIGINAL BACKUP:
-[Gövdesel olarak aynı mantığa sahip olduğu için burada kısaltıldı, 
-dosyanızın orjinal hali allProducts importu ile products-filter mantığını kullanıyordu.]
-*/

@@ -1,12 +1,9 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import './Auth.css';
 
-interface RegisterProps {
-  onNavigateLogin: () => void;
-}
-
-const Register: React.FC<RegisterProps> = ({ onNavigateLogin }) => {
+const Register: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
 
   return (
@@ -52,7 +49,7 @@ const Register: React.FC<RegisterProps> = ({ onNavigateLogin }) => {
           <div className="auth-checkbox-group">
             <input type="checkbox" id="consent" />
             <label htmlFor="consent">
-              <a href="#riza">Açık Rıza Metni</a>'ni ve <a href="#iletisim">Ticari Elektronik İletişim İzni Açık Rıza Metni</a>'ni onaylıyorum.
+              <a href="#riza">Açık Rıza Metni</a>'ni ve <a href="#sozlesme">Açık Rıza Metni</a>'ni ve <a href="#iletisim">Ticari Elektronik İletişim İzni Açık Rıza Metni</a>'ni onaylıyorum.
             </label>
           </div>
           
@@ -65,9 +62,9 @@ const Register: React.FC<RegisterProps> = ({ onNavigateLogin }) => {
           Bu site reCAPTCHA tarafından korunmaktadır ve Google <a href="#privacy">Gizlilik Politikası</a> ve <a href="#terms">Hizmet Şartları</a> geçerlidir.
         </p>
 
-        <div className="auth-links" style={{flexDirection: 'column', gap: '0.4rem', marginTop: '2.5rem'}}>
-          <span style={{fontSize: '0.85rem'}}>Zaten hesabınız var mı?</span>
-          <span className="auth-link" onClick={onNavigateLogin}>Üye Girişi</span>
+        <div className="auth-links" style={{flexDirection: 'column', gap: '0.25rem', marginTop: '1.5rem', alignItems: 'center'}}>
+          <span style={{fontSize: '0.8rem', color: '#999'}}>Zaten hesabınız var mı?</span>
+          <Link to="/login" className="auth-link">Üye Girişi</Link>
         </div>
       </div>
     </div>

@@ -1,12 +1,9 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import './Auth.css';
 
-interface LoginProps {
-  onNavigateRegister: () => void;
-}
-
-const Login: React.FC<LoginProps> = ({ onNavigateRegister }) => {
+const Login: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
 
   return (
@@ -45,12 +42,11 @@ const Login: React.FC<LoginProps> = ({ onNavigateRegister }) => {
 
         <div className="auth-links">
           <span className="auth-link">Parolamı Unuttum</span>
-          <span>Hesabınız yok mu? <span className="auth-link" onClick={onNavigateRegister}>Kayıt ol</span></span>
+          <span>Hesabınız yok mu? <Link to="/register" className="auth-link">Kayıt ol</Link></span>
         </div>
 
         <div className="auth-text-center">
           E-ticaret altyapımızı size daha iyi bir deneyim sunmak için yeniledik!
-          <br/><br/>
           Hesabınıza giriş yapabilmeniz için, <strong>PAROLAMI UNUTTUM</strong> butonunu kullanarak şifrenizi yenilemelisiniz
         </div>
 

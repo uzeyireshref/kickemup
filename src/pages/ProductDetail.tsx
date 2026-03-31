@@ -1,48 +1,49 @@
 import React, { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
 import { Heart, Plus, Minus, X, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import './ProductDetail.css';
 
 interface ProductDetailProps {
-  productId?: string | number;
-  product?: any; // Can be full object from list or just ID
-  onBackClick?: () => void;
   onAddToCart?: (product: any) => void;
 }
 
-const ProductDetail: React.FC<ProductDetailProps> = ({ productId, product: propProduct, onBackClick, onAddToCart }) => {
+const ProductDetail: React.FC<ProductDetailProps> = ({ onAddToCart }) => {
+  const { slug } = useParams<{ slug: string }>();
   const [selectedSize, setSelectedSize] = useState('M');
   const [isDescOpen, setIsDescOpen] = useState(true);
   const [isStockOpen, setIsStockOpen] = useState(false);
-  const [product, setProduct] = useState<any>(propProduct || null);
-  const [loading, setLoading] = useState(!propProduct);
-
-  const idToFetch = productId || propProduct?.id;
+  const [product, setProduct] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!idToFetch) return;
+    if (!slug) return;
 
     const fetchDetail = async () => {
       try {
         setLoading(true);
         const { data, error } = await supabase
           .from('products')
-          .select('*, brands(name), product_images(url), categories(name)')
-          .eq('id', idToFetch)
+          .select('*, brands(name), product_images(url), categories(name), product_variants(*)')
+          .eq('slug', slug)
           .single();
         
         if (error) throw error;
         setProduct(data);
+        
+        if (data.product_variants && data.product_variants.length > 0) {
+          const firstSize = data.product_variants.find((v: any) => v.size)?.size;
+          if (firstSize) setSelectedSize(firstSize);
+        }
       } catch (err) {
         console.error('Detail fetch error:', err);
       } finally {
         setLoading(false);
       }
     };
-
-    // Only fetch if we don't have the full object or if we want to refresh
-    if (idToFetch) fetchDetail();
-  }, [idToFetch]);
+  
+    fetchDetail();
+  }, [slug]);
 
   if (loading) {
     return (
@@ -56,8 +57,10 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, product: propP
   if (!product) {
     return (
       <div className="product-detail-page">
-        <p>Ürün bulunamadı.</p>
-        <button onClick={onBackClick}>Geri Dön</button>
+        <div style={{ textAlign: 'center', padding: '100px 20px' }}>
+          <p>Ürün bulunamadı.</p>
+          <Link to="/" className="add-to-cart-mega" style={{ display: 'inline-block', width: 'auto', padding: '10px 40px' }}>Ana Sayfaya Dön</Link>
+        </div>
       </div>
     );
   }
@@ -71,9 +74,11 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, product: propP
   return (
     <div className="product-detail-page">
       <div className="breadcrumb">
-        <span style={{cursor: 'pointer'}} onClick={onBackClick}>Ana Sayfa</span>
+        <Link to="/" className="breadcrumb-link">Ana Sayfa</Link>
         <span className="separator">{'>'}</span>
-        <span style={{cursor: 'pointer'}}>{product.categories?.name || 'Koleksiyon'}</span>
+        <Link to={`/products?category=${product.categories?.name}`} className="breadcrumb-link">
+          {product.categories?.name || 'Koleksiyon'}
+        </Link>
         <span className="separator">{'>'}</span>
         <span className="current">{product.name}</span>
       </div>
@@ -97,10 +102,9 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, product: propP
           <h2 className="detail-name">{product.name}</h2>
           
           <div className="detail-price">{displayPrice}</div>
-          <div className="detail-code">Ürün Kodu: {product.id}</div>
+          <div className="detail-code">Sürüm: {product.slug}</div>
 
           <div className="size-selector">
-            {/* Dinamik Beden Listesi */}
             {product.product_variants && product.product_variants.some((v: any) => v.size) ? (
               Array.from(new Set(product.product_variants.filter((v: any) => v.size).map((v: any) => v.size)))
                 .map((size: any) => (
@@ -152,38 +156,3 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ productId, product: propP
 };
 
 export default ProductDetail;
-
-/*
-ORIGINAL BACKUP:
-import React, { useState } from 'react';
-import { Heart, Plus, Minus, X } from 'lucide-react';
-import './ProductDetail.css';
-
-interface ProductDetailProps {
-  product?: any;
-  onBackClick?: () => void;
-  onAddToCart?: (product: any) => void;
-}
-
-const ProductDetail: React.FC<ProductDetailProps> = ({ product, onBackClick, onAddToCart }) => {
-  const [selectedSize, setSelectedSize] = useState('M');
-  const [isDescOpen, setIsDescOpen] = useState(true);
-  const [isStockOpen, setIsStockOpen] = useState(false);
-
-  const p = product || {
-    brand: "Carhartt WIP",
-    name: "W' Olney Michigan Coat 'Black'",
-    price: "₺ 13,100.00",
-    image: "https://images.unsplash.com/photo-1559551409-dadc959f76b8?auto=format&fit=crop&q=80&w=1000",
-    id: "I035320_89_XX"
-  };
-
-  return (
-    <div className="product-detail-page">
-       ... (UI Content)
-    </div>
-  );
-};
-
-export default ProductDetail;
-*/

@@ -14,11 +14,10 @@ export interface Product {
 interface ProductSliderProps {
   title: string;
   products: Product[];
-  onProductClick?: (product: Product) => void;
   onAddToCart?: (product: any) => void;
 }
 
-const ProductSlider: React.FC<ProductSliderProps> = ({ title, products, onProductClick, onAddToCart }) => {
+const ProductSlider: React.FC<ProductSliderProps> = ({ title, products, onAddToCart }) => {
   const sliderRef = useRef<HTMLDivElement>(null);
 
   const slide = (direction: 'left' | 'right') => {
@@ -43,7 +42,6 @@ const ProductSlider: React.FC<ProductSliderProps> = ({ title, products, onProduc
           <div className="slider-card-wrap" key={product.id}>
              <ProductCard 
                product={product as any} 
-               onClick={onProductClick as any} 
                onAddToCart={onAddToCart} 
                layoutType="slider" 
              />

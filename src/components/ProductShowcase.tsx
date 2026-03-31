@@ -6,11 +6,10 @@ import ProductCard from './ProductCard';
 const products = allProducts;
 
 interface Props {
-  onProductClick?: (product: any) => void;
   onAddToCart?: (product: any) => void;
 }
 
-const ProductShowcase = ({ onProductClick, onAddToCart }: Props) => {
+const ProductShowcase = ({ onAddToCart }: Props) => {
   return (
     <section className="product-showcase" id="new">
       <motion.div 
@@ -28,8 +27,7 @@ const ProductShowcase = ({ onProductClick, onAddToCart }: Props) => {
         {products.map((product) => (
           <ProductCard 
             key={product.id}
-            product={product}
-            onClick={onProductClick}
+            product={product as any}
             onAddToCart={onAddToCart}
           />
         ))}
