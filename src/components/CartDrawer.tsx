@@ -1,4 +1,3 @@
-import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Trash2, Plus, Minus } from 'lucide-react';
 import './CartDrawer.css';
@@ -11,7 +10,7 @@ interface CartDrawerProps {
   onUpdateQuantity: (id: string | number, qty: number) => void;
 }
 
-const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, cartItems, onRemoveItem, onUpdateQuantity }) => {
+const CartDrawer = ({ isOpen, onClose, cartItems, onRemoveItem, onUpdateQuantity }: CartDrawerProps) => {
   // Fiyatı saf sayıya çevirip toplama işlevi ("₺ 13,100.00" -> 13100)
   const calculateTotal = () => {
     let total = 0;

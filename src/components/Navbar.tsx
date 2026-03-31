@@ -1,12 +1,12 @@
-import React from 'react';
+import type { MouseEvent } from 'react';
 
 interface NavbarProps {
   isOpen: boolean;
   onNavigate?: (view: string) => void;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ isOpen, onNavigate }) => {
-  const handleClick = (e: React.MouseEvent) => {
+const Navbar = ({ isOpen, onNavigate }: NavbarProps) => {
+  const handleClick = (e: MouseEvent) => {
     e.preventDefault();
     if (onNavigate) {
       onNavigate('products');

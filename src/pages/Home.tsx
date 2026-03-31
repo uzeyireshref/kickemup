@@ -1,4 +1,3 @@
-import React from 'react';
 import Hero from '../components/Hero';
 import ProductShowcase from '../components/ProductShowcase';
 import ProductSlider from '../components/ProductSlider';
@@ -12,7 +11,7 @@ interface HomeProps {
   onAddToCart: (product: any) => void;
 }
 
-const Home: React.FC<HomeProps> = ({ onProductClick, onAddToCart }) => {
+const Home = ({ onProductClick, onAddToCart }: HomeProps) => {
   return (
     <main>
       <Hero />

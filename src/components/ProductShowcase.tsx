@@ -1,4 +1,3 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 import './ProductShowcase.css';
 import { allProducts } from '../data/products';
@@ -10,7 +9,7 @@ interface Props {
   onAddToCart?: (product: any) => void;
 }
 
-const ProductShowcase: React.FC<Props> = ({ onProductClick, onAddToCart }) => {
+const ProductShowcase = ({ onProductClick, onAddToCart }: Props) => {
   return (
     <section className="product-showcase" id="new">
       <motion.div 

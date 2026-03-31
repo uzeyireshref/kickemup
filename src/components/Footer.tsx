@@ -1,8 +1,7 @@
-import React from 'react';
 import { Store, ShieldCheck, Truck } from 'lucide-react';
 import './Footer.css';
 
-const Footer: React.FC = () => {
+const Footer = () => {
   return (
     <footer className="footer-container">
       {/* TOP SECTION */}
