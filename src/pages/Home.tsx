@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import Hero from '../components/Hero';
+import BrandShowcase from '../components/BrandShowcase';
 import ProductSlider from '../components/ProductSlider';
 import Categories from '../components/Categories';
 import { supabase } from '../lib/supabase';
@@ -53,6 +54,7 @@ const Home = ({ onAddToCart }: HomeProps) => {
   return (
     <main>
       <Hero />
+      <BrandShowcase />
       <ProductSlider title="Yeni Gelen Sneaker'lar" products={sneakers} onAddToCart={onAddToCart} />
       <Categories />
       <ProductSlider title="En Son Eklenenler" products={latest} onAddToCart={onAddToCart} />

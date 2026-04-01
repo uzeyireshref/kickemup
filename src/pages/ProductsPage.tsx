@@ -16,7 +16,7 @@ const filterCategories = [
     id: 'marka',
     label: 'MARKA',
     type: 'checkbox',
-    options: ['Nike', 'Jordan', 'adidas', 'New Balance', 'Vans', 'Carhartt WIP', 'A.P.C.', 'Oakley'],
+    options: ['Nike', 'Jordan', 'adidas', 'Asics', 'Champion', 'New Balance', 'Puma', 'Vans', 'Carhartt WIP', 'A.P.C.', 'Oakley'],
   },
   {
     id: 'urunTipi',
@@ -62,6 +62,53 @@ const sortOptions = [
   { label: 'Fiyat: Yüksekten Düşüğe', value: 'price_desc' },
 ];
 
+const brandParamMap: Record<string, string> = {
+  nike: 'Nike',
+  jordan: 'Jordan',
+  adidas: 'adidas',
+  asics: 'Asics',
+  champion: 'Champion',
+  'new-balance': 'New Balance',
+  newbalance: 'New Balance',
+  puma: 'Puma',
+  vans: 'Vans',
+  'carhartt-wip': 'Carhartt WIP',
+  carharttwip: 'Carhartt WIP',
+  'a.p.c.': 'A.P.C.',
+  'a-p-c': 'A.P.C.',
+  oakley: 'Oakley',
+};
+
+const brandFilterToParamMap: Record<string, string> = {
+  Nike: 'nike',
+  Jordan: 'jordan',
+  adidas: 'adidas',
+  Asics: 'asics',
+  Champion: 'champion',
+  'New Balance': 'new-balance',
+  Puma: 'puma',
+  Vans: 'vans',
+  'Carhartt WIP': 'carhartt-wip',
+  'A.P.C.': 'a-p-c',
+  Oakley: 'oakley',
+};
+
+const parseBrandParam = (param: string): string[] => {
+  const normalized = param
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .map((value) => value.toLowerCase().replace(/\s+/g, '-'));
+
+  const mapped = normalized.map((value) => brandParamMap[value] || value);
+  return Array.from(new Set(mapped));
+};
+
+const buildBrandParam = (brands: string[]): string => {
+  const values = brands.map((brand) => brandFilterToParamMap[brand] || brand.toLowerCase().replace(/\s+/g, '-'));
+  return values.join(',');
+};
+
 const ProductsPage: React.FC<ProductsPageProps> = ({ onAddToCart }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState<ProductData[]>([]);
@@ -77,20 +124,43 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onAddToCart }) => {
   useEffect(() => {
     const category = searchParams.get('category');
     const sort = searchParams.get('sort');
+    const brand = searchParams.get('brand');
 
-    setSelectedFilters(prev => {
+    setSelectedFilters((prev) => {
       const currentUrunTipi = prev.urunTipi || [];
+      const currentBrands = prev.marka || [];
       const urunTipiOptions = filterCategories.find(c => c.id === 'urunTipi')?.options as string[];
+      let nextFilters = prev;
+      let hasChange = false;
 
       if (category) {
         if (currentUrunTipi.length !== 1 || currentUrunTipi[0] !== category) {
-          return { ...prev, urunTipi: [category] };
+          nextFilters = { ...nextFilters, urunTipi: [category] };
+          hasChange = true;
         }
       } else if (currentUrunTipi.length === 1 && urunTipiOptions?.includes(currentUrunTipi[0])) {
-        const { urunTipi: _, ...rest } = prev;
-        return rest;
+        const { urunTipi: _, ...rest } = nextFilters;
+        nextFilters = rest;
+        hasChange = true;
       }
-      return prev;
+
+      if (brand) {
+        const parsedBrands = parseBrandParam(brand);
+        const isSameBrandSelection =
+          parsedBrands.length === currentBrands.length &&
+          parsedBrands.every((value, index) => value === currentBrands[index]);
+
+        if (parsedBrands.length > 0 && !isSameBrandSelection) {
+          nextFilters = { ...nextFilters, marka: parsedBrands };
+          hasChange = true;
+        }
+      } else if (currentBrands.length > 0) {
+        const { marka: _, ...rest } = nextFilters;
+        nextFilters = rest;
+        hasChange = true;
+      }
+
+      return hasChange ? nextFilters : prev;
     });
 
     if (sort) {
@@ -247,13 +317,25 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onAddToCart }) => {
       const isExist = current.includes(option);
       const next = isExist ? current.filter(o => o !== option) : [...current, option];
 
-      if (filterId === 'urunTipi') {
+      if (filterId === 'urunTipi' || filterId === 'marka') {
         const newParams = new URLSearchParams(searchParams);
-        if (next.length === 1) {
-          newParams.set('category', next[0]);
-        } else {
-          newParams.delete('category');
+
+        if (filterId === 'urunTipi') {
+          if (next.length === 1) {
+            newParams.set('category', next[0]);
+          } else {
+            newParams.delete('category');
+          }
         }
+
+        if (filterId === 'marka') {
+          if (next.length > 0) {
+            newParams.set('brand', buildBrandParam(next));
+          } else {
+            newParams.delete('brand');
+          }
+        }
+
         setSearchParams(newParams);
       }
 
@@ -426,11 +508,21 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onAddToCart }) => {
                   </button>
                 )}
               </div>
-              <div className="products-grid">
-                {filteredProducts.map(product => (
-                  <ProductCard key={product.id} product={product} onAddToCart={onAddToCart} layoutType="grid" />
-                ))}
-              </div>
+              {filteredProducts.length === 0 ? (
+                <div className="products-empty-state">
+                  <span className="products-empty-badge">0 ÜRÜN</span>
+                  <h3 className="products-empty-title">Ürün bulunamadı</h3>
+                  <p className="products-empty-text">
+                    Seçilen filtrelere uygun ürün bulunamadı. Filtreleri değiştirip tekrar deneyebilirsin.
+                  </p>
+                </div>
+              ) : (
+                <div className="products-grid">
+                  {filteredProducts.map(product => (
+                    <ProductCard key={product.id} product={product} onAddToCart={onAddToCart} layoutType="grid" />
+                  ))}
+                </div>
+              )}
             </>
           )}
         </section>
