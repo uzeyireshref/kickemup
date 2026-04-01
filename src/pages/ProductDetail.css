@@ -161,6 +161,25 @@
   transform: translateY(-2px);
 }
 
+.add-to-cart-mega:disabled {
+  background-color: #b8b8b8;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.add-to-cart-mega:disabled:hover {
+  background-color: #b8b8b8;
+  transform: none;
+}
+
+.stock-scarcity {
+  margin-top: -1.5rem;
+  margin-bottom: 1.1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #d93025;
+}
+
 /* Accordion */
 .product-accordion {
   border-top: 1px solid #eee;

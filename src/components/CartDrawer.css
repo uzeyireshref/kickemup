@@ -193,6 +193,15 @@
   color: #000;
 }
 
+.qty-btn:disabled {
+  color: #bcbcbc;
+  cursor: not-allowed;
+}
+
+.qty-btn:disabled:hover {
+  color: #bcbcbc;
+}
+
 .qty-value {
   font-size: 0.9rem;
   font-weight: 500;

@@ -12,24 +12,20 @@ interface Props {
 const ProductShowcase = ({ onAddToCart }: Props) => {
   return (
     <section className="product-showcase" id="new">
-      <motion.div 
+      <motion.div
         className="showcase-header"
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: "-50px" }}
+        viewport={{ once: true, margin: '-50px' }}
         transition={{ duration: 0.6 }}
       >
         <h2 className="section-title">Seçili Parçalar</h2>
         <a href="#all" className="view-all">Tümünü Gör →</a>
       </motion.div>
-      
+
       <div className="product-grid">
         {products.map((product) => (
-          <ProductCard 
-            key={product.id}
-            product={product as any}
-            onAddToCart={onAddToCart}
-          />
+          <ProductCard key={product.id} product={product as any} onAddToCart={onAddToCart} />
         ))}
       </div>
     </section>

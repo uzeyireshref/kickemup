@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Heart, Plus, Minus, X, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -7,6 +7,20 @@ import './ProductDetail.css';
 interface ProductDetailProps {
   onAddToCart?: (product: any) => void;
 }
+
+const getVariantStock = (variant: any): number | null => {
+  if (!variant) return null;
+
+  const candidates = [variant.stock, variant.quantity, variant.stock_quantity];
+  for (const candidate of candidates) {
+    const numeric = Number(candidate);
+    if (Number.isFinite(numeric)) {
+      return Math.max(0, numeric);
+    }
+  }
+
+  return null;
+};
 
 const ProductDetail: React.FC<ProductDetailProps> = ({ onAddToCart }) => {
   const { slug } = useParams<{ slug: string }>();
@@ -27,11 +41,11 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ onAddToCart }) => {
           .select('*, brands(name), product_images(url), categories(name), product_variants(*)')
           .eq('slug', slug)
           .single();
-        
+
         if (error) throw error;
         setProduct(data);
-        
-        if (data.product_variants && data.product_variants.length > 0) {
+
+        if (Array.isArray(data.product_variants) && data.product_variants.length > 0) {
           const firstSize = data.product_variants.find((v: any) => v.size)?.size;
           if (firstSize) setSelectedSize(firstSize);
         }
@@ -41,7 +55,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ onAddToCart }) => {
         setLoading(false);
       }
     };
-  
+
     fetchDetail();
   }, [slug]);
 
@@ -59,7 +73,9 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ onAddToCart }) => {
       <div className="product-detail-page">
         <div style={{ textAlign: 'center', padding: '100px 20px' }}>
           <p>Ürün bulunamadı.</p>
-          <Link to="/" className="add-to-cart-mega" style={{ display: 'inline-block', width: 'auto', padding: '10px 40px' }}>Ana Sayfaya Dön</Link>
+          <Link to="/" className="add-to-cart-mega" style={{ display: 'inline-block', width: 'auto', padding: '10px 40px' }}>
+            Ana Sayfaya Dön
+          </Link>
         </div>
       </div>
     );
@@ -70,6 +86,35 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ onAddToCart }) => {
   const displayPrice = typeof product.price === 'number'
     ? new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(product.price)
     : product.price;
+
+  const variants = Array.isArray(product.product_variants) ? product.product_variants : [];
+  const hasSizedVariants = variants.some((v: any) => v.size);
+  const sizeList = hasSizedVariants
+    ? Array.from(new Set(variants.filter((v: any) => v.size).map((v: any) => v.size)))
+    : [];
+
+  const getSizeStock = (size: string) => {
+    const matching = variants.filter((v: any) => v.size === size);
+    if (matching.length === 0) return null;
+
+    const values: number[] = matching
+      .map(getVariantStock)
+      .filter((value: number | null): value is number => value !== null);
+
+    if (values.length === 0) return null;
+    return values.reduce((sum: number, value: number) => sum + value, 0);
+  };
+
+  const selectedSizeStock = hasSizedVariants ? getSizeStock(selectedSize) : getVariantStock(variants[0]);
+  const isSelectedOutOfStock = selectedSizeStock !== null && selectedSizeStock <= 0;
+  const isLowStock = selectedSizeStock !== null && selectedSizeStock > 0 && selectedSizeStock < 5;
+
+  const selectedVariant = hasSizedVariants
+    ? (
+      variants.find((v: any) => v.size === selectedSize && (getVariantStock(v) ?? 0) > 0)
+      || variants.find((v: any) => v.size === selectedSize)
+    )
+    : variants[0];
 
   return (
     <div className="product-detail-page">
@@ -89,49 +134,66 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ onAddToCart }) => {
             <button className="wishlist-btn" aria-label="Favorilere Ekle">
               <Heart size={26} strokeWidth={1.5} color="#000" />
             </button>
-            <img 
-              src={displayImage}
-              alt={product.name} 
-              className="detail-main-image"
-            />
+            <img src={displayImage} alt={product.name} className="detail-main-image" />
           </div>
         </div>
 
         <div className="product-info-section">
           <h1 className="detail-brand">{brandName}</h1>
           <h2 className="detail-name">{product.name}</h2>
-          
+
           <div className="detail-price">{displayPrice}</div>
           <div className="detail-code">Sürüm: {product.slug}</div>
 
           <div className="size-selector">
-            {product.product_variants && product.product_variants.some((v: any) => v.size) ? (
-              Array.from(new Set(product.product_variants.filter((v: any) => v.size).map((v: any) => v.size)))
-                .map((size: any) => (
-                  <button 
+            {hasSizedVariants ? (
+              sizeList.map((size: any) => {
+                const sizeStock = getSizeStock(size);
+                const outOfStock = sizeStock !== null && sizeStock <= 0;
+
+                return (
+                  <button
                     key={size}
-                    className={`size-btn ${selectedSize === size ? 'selected' : ''}`}
+                    className={`size-btn ${selectedSize === size ? 'selected' : ''} ${outOfStock ? 'out-of-stock' : ''}`}
                     onClick={() => setSelectedSize(size)}
                   >
                     {size}
+                    {outOfStock && <span className="strike" />}
                   </button>
-                ))
+                );
+              })
             ) : (
               <p className="no-variants">Bu ürün için beden bilgisi bulunmamaktadır.</p>
             )}
           </div>
 
-          <button 
-            className="add-to-cart-mega" 
-            onClick={() => onAddToCart && onAddToCart(product)}
+          {isLowStock && (
+            <p className="stock-scarcity">Son {selectedSizeStock} adet!</p>
+          )}
+
+          <button
+            className="add-to-cart-mega"
+            disabled={isSelectedOutOfStock}
+            onClick={() => {
+              if (!onAddToCart) return;
+              const cartPayload = hasSizedVariants
+                ? {
+                  ...product,
+                  selectedSize,
+                  selectedVariantId: selectedVariant?.id,
+                  maxStock: selectedSizeStock
+                }
+                : product;
+              onAddToCart(cartPayload);
+            }}
           >
-            SEPETE EKLE
+            {isSelectedOutOfStock ? 'Tükendi' : 'SEPETE EKLE'}
           </button>
 
           <div className="product-accordion">
             <div className="accordion-item">
               <button className="accordion-header" onClick={() => setIsStockOpen(!isStockOpen)}>
-                <div className="accordion-title">◎ Mağaza Stok Durumu</div>
+                <div className="accordion-title">◍ Mağaza Stok Durumu</div>
                 {isStockOpen ? <Minus size={20} /> : <Plus size={20} />}
               </button>
               {isStockOpen && <div className="accordion-content"><p>Web stoğu mevcuttur.</p></div>}

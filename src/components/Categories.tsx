@@ -3,24 +3,9 @@ import { motion } from 'framer-motion';
 import './Categories.css';
 
 const categories = [
-  {
-    id: 1,
-    title: 'SNEAKER',
-    image: '/categories/sneaker.jpg',
-    href: '/products?category=Sneaker'
-  },
-  {
-    id: 2,
-    title: 'GİYİM',
-    image: '/categories/giyim.jpg',
-    href: '/products?category=Giyim'
-  },
-  {
-    id: 3,
-    title: 'AKSESUAR',
-    image: '/categories/aksesuar.jpg',
-    href: '/products?category=Aksesuar'
-  }
+  { id: 1, title: 'SNEAKER', image: '/categories/sneaker.jpg', href: '/products?category=Sneaker' },
+  { id: 2, title: 'GİYİM', image: '/categories/giyim.jpg', href: '/products?category=Giyim' },
+  { id: 3, title: 'AKSESUAR', image: '/categories/aksesuar.jpg', href: '/products?category=Aksesuar' }
 ];
 
 const Categories = () => {
@@ -28,16 +13,12 @@ const Categories = () => {
     <section className="categories-section">
       <div className="categories-grid">
         {categories.map((category, index) => (
-          <Link
-            to={category.href}
-            key={category.id}
-            className="category-card-link"
-          >
+          <Link to={category.href} key={category.id} className="category-card-link">
             <motion.div
               className="category-card"
               initial={{ opacity: 0, scale: 0.95 }}
               whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true, margin: "-50px" }}
+              viewport={{ once: true, margin: '-50px' }}
               transition={{ duration: 0.5, delay: index * 0.15 }}
             >
               <div className="category-image-container">

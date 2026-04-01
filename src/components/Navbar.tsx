@@ -30,10 +30,7 @@ const Navbar = ({ isOpen }: NavbarProps) => {
       <ul className={`nav-links ${isOpen ? 'open' : ''}`}>
         {navItems.map((item) => (
           <li key={item.label}>
-            <Link 
-              to={item.href} 
-              className={`nav-link ${activeCategory === item.category ? 'active' : ''}`}
-            >
+            <Link to={item.href} className={`nav-link ${activeCategory === item.category ? 'active' : ''}`}>
               {item.label}
             </Link>
           </li>

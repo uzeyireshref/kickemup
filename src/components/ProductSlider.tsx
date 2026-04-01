@@ -35,21 +35,16 @@ const ProductSlider: React.FC<ProductSliderProps> = ({ title, products, onAddToC
       <div className="slider-header-wrapper">
         <h2 className="slider-title">{title}</h2>
       </div>
-      
+
       <div className="slider-wrapper">
         <div className="slider-container" ref={sliderRef}>
-        {products.map((product) => (
-          <div className="slider-card-wrap" key={product.id}>
-             <ProductCard 
-               product={product as any} 
-               onAddToCart={onAddToCart} 
-               layoutType="slider" 
-             />
-          </div>
-        ))}
+          {products.map((product) => (
+            <div className="slider-card-wrap" key={product.id}>
+              <ProductCard product={product as any} onAddToCart={onAddToCart} layoutType="slider" />
+            </div>
+          ))}
         </div>
-        
-        {/* Float Controls */}
+
         <button className="slider-nav-btn slider-nav-left" onClick={() => slide('left')} aria-label="Sola kaydır">
           <ChevronLeft size={24} color="#666" />
         </button>

@@ -18,14 +18,12 @@ const Home = ({ onAddToCart }: HomeProps) => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        // Fetch Sneakers for first slider
         const { data: sneakData } = await supabase
           .from('products')
           .select('*, brands(name), product_images(url), categories!inner(name)')
           .eq('categories.name', 'Sneaker')
           .limit(10);
-        
-        // Fetch Latest for second slider
+
         const { data: latestData } = await supabase
           .from('products')
           .select('*, brands(name), product_images(url)')
@@ -55,17 +53,9 @@ const Home = ({ onAddToCart }: HomeProps) => {
   return (
     <main>
       <Hero />
-      <ProductSlider 
-        title="Yeni Gelen Sneaker'lar" 
-        products={sneakers} 
-        onAddToCart={onAddToCart} 
-      />
+      <ProductSlider title="Yeni Gelen Sneaker'lar" products={sneakers} onAddToCart={onAddToCart} />
       <Categories />
-      <ProductSlider 
-        title="En Son Eklenenler" 
-        products={latest} 
-        onAddToCart={onAddToCart} 
-      />
+      <ProductSlider title="En Son Eklenenler" products={latest} onAddToCart={onAddToCart} />
     </main>
   );
 };
