@@ -1,16 +1,18 @@
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, Trash2, Plus, Minus } from 'lucide-react';
+﻿import { AnimatePresence, motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
+import { Minus, Plus, Trash2, X } from 'lucide-react';
+import type { CartItem } from '../types/cart';
 import './CartDrawer.css';
 
 interface CartDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  cartItems: any[];
+  cartItems: CartItem[];
   onRemoveItem: (cartItemKey: string) => void;
   onUpdateQuantity: (cartItemKey: string, qty: number) => void;
 }
 
-const getCartItemKey = (item: any) => {
+const getCartItemKey = (item: CartItem) => {
   if (item?.cartItemKey) return item.cartItemKey;
   const size = item?.selectedSize || item?.size || '';
   const color = item?.selectedColor || item?.color || '';
@@ -32,11 +34,9 @@ const parsePrice = (value: unknown) => {
   if (hasDot && hasComma) {
     const lastComma = cleaned.lastIndexOf(',');
     const lastDot = cleaned.lastIndexOf('.');
-    if (lastComma > lastDot) {
-      normalized = cleaned.replace(/\./g, '').replace(',', '.');
-    } else {
-      normalized = cleaned.replace(/,/g, '');
-    }
+    normalized = lastComma > lastDot
+      ? cleaned.replace(/\./g, '').replace(',', '.')
+      : cleaned.replace(/,/g, '');
   } else if (hasComma) {
     normalized = cleaned.replace(',', '.');
   }
@@ -56,7 +56,13 @@ const CartDrawer = ({ isOpen, onClose, cartItems, onRemoveItem, onUpdateQuantity
     <AnimatePresence>
       {isOpen && (
         <>
-          <motion.div className="cart-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
+          <motion.div
+            className="cart-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+          />
 
           <motion.div
             className="cart-drawer"
@@ -66,7 +72,7 @@ const CartDrawer = ({ isOpen, onClose, cartItems, onRemoveItem, onUpdateQuantity
             transition={{ type: 'tween', duration: 0.3, ease: 'easeOut' }}
           >
             <div className="cart-header">
-              <h2>Sepetiniz ({totalQuantity})</h2>
+              <h2>Sepetin ({totalQuantity})</h2>
               <button onClick={onClose} className="cart-close-btn" aria-label="Kapat">
                 <X size={24} color="#000" strokeWidth={1.5} />
               </button>
@@ -75,11 +81,11 @@ const CartDrawer = ({ isOpen, onClose, cartItems, onRemoveItem, onUpdateQuantity
             <div className="cart-items-container">
               {cartItems.length === 0 ? (
                 <div className="empty-cart">
-                  <p>Sepetiniz şu an boş.</p>
+                  <p>Sepetin şu an boş.</p>
                   <button className="continue-shopping" onClick={onClose}>Alışverişe Devam Et</button>
                 </div>
               ) : (
-                cartItems.map(item => {
+                cartItems.map((item) => {
                   const cartItemKey = getCartItemKey(item);
                   const brandName = item.brands?.name || item.brand || 'Ürün';
                   const displayImage = item.product_images?.[0]?.url || item.image_url || item.image || '';
@@ -128,7 +134,7 @@ const CartDrawer = ({ isOpen, onClose, cartItems, onRemoveItem, onUpdateQuantity
                   <span>Toplam</span>
                   <span>{new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(calculateTotal())}</span>
                 </div>
-                <button className="checkout-btn">SİPARİŞİ TAMAMLA</button>
+                <Link className="checkout-btn" to="/cart" onClick={onClose}>Siparişi Tamamla</Link>
               </div>
             )}
           </motion.div>
@@ -139,3 +145,4 @@ const CartDrawer = ({ isOpen, onClose, cartItems, onRemoveItem, onUpdateQuantity
 };
 
 export default CartDrawer;
+

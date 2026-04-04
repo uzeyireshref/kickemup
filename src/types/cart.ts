@@ -1,0 +1,19 @@
+export type CartItem = {
+  id?: string | number | null;
+  name?: string;
+  brand?: string;
+  size?: string;
+  color?: string;
+  selectedSize?: string;
+  selectedColor?: string;
+  selectedVariantId?: string | null;
+  maxStock?: number | null;
+  cartItemKey?: string;
+  cartQuantity?: number;
+  image?: string;
+  image_url?: string;
+  price?: number | string;
+  product_images?: Array<{ url?: string }>;
+  brands?: { name?: string };
+  [key: string]: unknown;
+};

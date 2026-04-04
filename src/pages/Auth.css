@@ -76,6 +76,19 @@
   color: #333;
 }
 
+.auth-feedback {
+  font-size: 0.78rem;
+  margin-top: 0.1rem;
+}
+
+.auth-feedback-error {
+  color: #d14343;
+}
+
+.auth-feedback-success {
+  color: #16784a;
+}
+
 .auth-button {
   width: 100%;
   background-color: #000;
@@ -94,6 +107,18 @@
 .auth-button:hover {
   opacity: 0.85;
   transform: translateY(-2px);
+}
+
+.auth-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.auth-button-loading {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
 }
 
 .auth-disclaimer {
@@ -197,7 +222,7 @@
   line-height: 1.5;
 }
 
-.auth-checkbox-group input[type="checkbox"] {
+.auth-checkbox-group input[type='checkbox'] {
   margin-top: 0.25rem;
   accent-color: #000;
   width: 16px;

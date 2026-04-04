@@ -1,35 +1,48 @@
-import { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+﻿import { useEffect, useState } from 'react';
+import {
+  BrowserRouter as Router,
+  Route,
+  Routes,
+  useLocation,
+} from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import Header from './components/Header';
 import Home from './pages/Home';
 import ProductDetail from './pages/ProductDetail';
 import CartDrawer from './components/CartDrawer';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ProfilePage from './pages/ProfilePage';
 import Footer from './components/Footer';
 import ProductsPage from './pages/ProductsPage';
+import Cart from './pages/Cart';
+import GuestOnlyRoute from './components/GuestOnlyRoute';
+import ProtectedRoute from './components/ProtectedRoute';
 import { supabase } from './lib/supabase';
+import { useAuth } from './hooks/useAuth';
+import type { CartItem } from './types/cart';
 import './index.css';
 
 const ScrollToTop = () => {
   const { pathname, search } = useLocation();
+
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [pathname, search]);
+
   return null;
 };
 
-const buildCartItemKey = (item: any) => {
+const buildCartItemKey = (item: CartItem) => {
   const size = item?.selectedSize || item?.size || '';
   const color = item?.selectedColor || item?.color || '';
   return `${item?.id}::${size}::${color}`;
 };
 
-const normalizeCartItems = (items: any[]) => {
-  const merged = new Map<string, any>();
+const normalizeCartItems = (items: CartItem[]) => {
+  const merged = new Map<string, CartItem>();
 
-  items.forEach(rawItem => {
+  items.forEach((rawItem) => {
     if (!rawItem || rawItem.id === undefined || rawItem.id === null) {
       return;
     }
@@ -39,7 +52,9 @@ const normalizeCartItems = (items: any[]) => {
 
     if (merged.has(itemKey)) {
       const existing = merged.get(itemKey);
-      merged.set(itemKey, { ...existing, cartQuantity: existing.cartQuantity + quantity });
+      if (existing) {
+        merged.set(itemKey, { ...existing, cartQuantity: (existing.cartQuantity ?? 1) + quantity });
+      }
       return;
     }
 
@@ -55,7 +70,7 @@ const normalizeCartItems = (items: any[]) => {
   return Array.from(merged.values());
 };
 
-const getVariantStock = (variant: any): number | null => {
+const getVariantStock = (variant: Record<string, unknown> | null | undefined): number | null => {
   if (!variant) return null;
 
   const candidates = [variant.stock, variant.quantity, variant.stock_quantity];
@@ -69,13 +84,14 @@ const getVariantStock = (variant: any): number | null => {
   return null;
 };
 
-const fetchLiveVariantStock = async (product: any) => {
+const fetchLiveVariantStock = async (product: CartItem) => {
   const hasVariantContext = Boolean(product?.selectedVariantId || product?.selectedSize || product?.selectedColor);
+
   if (!hasVariantContext || !product?.id) {
     return { stock: null as number | null, selectedVariantId: product?.selectedVariantId || undefined };
   }
 
-  let query: any = supabase
+  let query = supabase
     .from('product_variants')
     .select('*')
     .eq('product_id', product.id);
@@ -103,8 +119,9 @@ const fetchLiveVariantStock = async (product: any) => {
   };
 };
 
-function App() {
-  const [cart, setCart] = useState<any[]>(() => {
+function AppContent() {
+  const { syncSession, setAuthLoading } = useAuth();
+  const [cart, setCart] = useState<CartItem[]>(() => {
     try {
       const savedCart = localStorage.getItem('cart');
       if (!savedCart) return [];
@@ -120,6 +137,36 @@ function App() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    setAuthLoading(true);
+
+    const bootstrapSession = async () => {
+      const { data, error } = await supabase.auth.getSession();
+
+      if (error) {
+        console.error('Session check error:', error);
+      }
+
+      if (!isMounted) return;
+      syncSession(data.session ?? null);
+      setAuthLoading(false);
+    };
+
+    bootstrapSession();
+
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      syncSession(session);
+      setAuthLoading(false);
+    });
+
+    return () => {
+      isMounted = false;
+      data.subscription.unsubscribe();
+    };
+  }, [setAuthLoading, syncSession]);
+
   const showToast = (message: string) => {
     setToastMessage(message);
     setTimeout(() => {
@@ -131,14 +178,14 @@ function App() {
     localStorage.setItem('cart', JSON.stringify(cart));
   }, [cart]);
 
-  const handleAddToCart = async (product: any) => {
+  const handleAddToCart = async (product: CartItem) => {
     const nextProduct = {
       ...product,
       selectedSize: product.selectedSize || product.size || undefined,
       selectedColor: product.selectedColor || product.color || undefined,
     };
-    const itemKey = buildCartItemKey(nextProduct);
 
+    const itemKey = buildCartItemKey(nextProduct);
     let maxStock: number | null = nextProduct.maxStock ?? null;
     let selectedVariantId = nextProduct.selectedVariantId;
 
@@ -158,8 +205,8 @@ function App() {
 
     let stockBlocked = false;
 
-    setCart(prev => {
-      const existingIndex = prev.findIndex(item => item.cartItemKey === itemKey);
+    setCart((prev) => {
+      const existingIndex = prev.findIndex((item) => item.cartItemKey === itemKey);
       const currentQty = existingIndex >= 0 ? (prev[existingIndex].cartQuantity || 1) : 0;
 
       if (maxStock !== null && currentQty + 1 > maxStock) {
@@ -173,7 +220,7 @@ function App() {
           ...newCart[existingIndex],
           selectedVariantId: selectedVariantId || newCart[existingIndex].selectedVariantId,
           maxStock: maxStock ?? newCart[existingIndex].maxStock,
-          cartQuantity: currentQty + 1
+          cartQuantity: currentQty + 1,
         };
         return newCart;
       }
@@ -185,13 +232,13 @@ function App() {
           selectedVariantId,
           maxStock,
           cartItemKey: itemKey,
-          cartQuantity: 1
-        }
+          cartQuantity: 1,
+        },
       ];
     });
 
     if (stockBlocked) {
-      showToast('Üzgünüz, bu ürün tükendi');
+      showToast('Üzgünüz, bu ürün tükenmiş durumda.');
       return;
     }
 
@@ -200,11 +247,11 @@ function App() {
 
   const handleUpdateQuantity = async (cartItemKey: string, newQuantity: number) => {
     if (newQuantity <= 0) {
-      setCart(prev => prev.filter(item => item.cartItemKey !== cartItemKey));
+      setCart((prev) => prev.filter((item) => item.cartItemKey !== cartItemKey));
       return;
     }
 
-    const cartItem = cart.find(item => item.cartItemKey === cartItemKey);
+    const cartItem = cart.find((item) => item.cartItemKey === cartItemKey);
     if (!cartItem) return;
 
     let maxStock: number | null = cartItem.maxStock ?? null;
@@ -223,41 +270,45 @@ function App() {
         }
       } catch (err) {
         console.error('Stock check error while updating quantity:', err);
-        showToast('Stok bilgisi alınamadı. Lütfen tekrar deneyin.');
+      showToast('Stok bilgisi alınamadı. Lütfen tekrar deneyin.');
         return;
       }
     }
 
     if (maxStock !== null && newQuantity > maxStock) {
-      setCart(prev => prev.map(item => (
+      setCart((prev) => prev.map((item) => (
         item.cartItemKey === cartItemKey
           ? { ...item, maxStock, selectedVariantId: selectedVariantId || item.selectedVariantId }
           : item
       )));
-      showToast('Üzgünüz, bu ürün tükendi');
+      showToast('Üzgünüz, bu ürün tükenmiş durumda.');
       return;
     }
 
-    setCart(prev => prev.map(item => (
+    setCart((prev) => prev.map((item) => (
       item.cartItemKey === cartItemKey
         ? {
           ...item,
           maxStock: maxStock ?? item.maxStock,
           selectedVariantId: selectedVariantId || item.selectedVariantId,
-          cartQuantity: newQuantity
+          cartQuantity: newQuantity,
         }
         : item
     )));
   };
 
   const handleRemoveFromCart = (cartItemKey: string) => {
-    setCart(prev => prev.filter(item => item.cartItemKey !== cartItemKey));
+    setCart((prev) => prev.filter((item) => item.cartItemKey !== cartItemKey));
+  };
+
+  const handleCartClick = () => {
+    setIsCartOpen(true);
   };
 
   const totalCartItems = cart.reduce((sum, item) => sum + (item.cartQuantity || 1), 0);
 
   return (
-    <Router>
+    <>
       <ScrollToTop />
       <div className="app-container">
         <AnimatePresence>
@@ -280,7 +331,7 @@ function App() {
                 boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
                 pointerEvents: 'none',
                 maxWidth: '90%',
-                textAlign: 'center'
+                textAlign: 'center',
               }}
             >
               {toastMessage}
@@ -290,15 +341,60 @@ function App() {
 
         <Header
           cartCount={totalCartItems}
-          onCartClick={() => setIsCartOpen(true)}
+          onCartClick={handleCartClick}
         />
 
         <Routes>
           <Route path="/" element={<Home onAddToCart={handleAddToCart} />} />
           <Route path="/products" element={<ProductsPage onAddToCart={handleAddToCart} />} />
           <Route path="/product/:slug" element={<ProductDetail onAddToCart={handleAddToCart} />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+
+          <Route
+            path="/cart"
+            element={(
+              <Cart
+                cartItems={cart}
+                onRemoveItem={handleRemoveFromCart}
+                onUpdateQuantity={handleUpdateQuantity}
+              />
+            )}
+          />
+
+          <Route
+            path="/login"
+            element={(
+              <GuestOnlyRoute>
+                <Login />
+              </GuestOnlyRoute>
+            )}
+          />
+
+          <Route
+            path="/register"
+            element={(
+              <GuestOnlyRoute>
+                <Register />
+              </GuestOnlyRoute>
+            )}
+          />
+
+          <Route
+            path="/profile"
+            element={(
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            )}
+          />
+
+          <Route
+            path="/account"
+            element={(
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            )}
+          />
         </Routes>
 
         <CartDrawer
@@ -311,6 +407,14 @@ function App() {
 
         <Footer />
       </div>
+    </>
+  );
+}
+
+function App() {
+  return (
+    <Router>
+      <AppContent />
     </Router>
   );
 }
