@@ -1,5 +1,6 @@
 ﻿import { Link } from 'react-router-dom';
 import { Minus, Plus, Trash2 } from 'lucide-react';
+import { formatCurrency, parsePrice } from '../lib/pricing';
 import type { CartItem } from '../types/cart';
 import './Cart.css';
 
@@ -14,32 +15,6 @@ const getCartItemKey = (item: CartItem) => {
   const size = item?.selectedSize || item?.size || '';
   const color = item?.selectedColor || item?.color || '';
   return `${item?.id}::${size}::${color}`;
-};
-
-const parsePrice = (value: unknown) => {
-  if (typeof value === 'number') return value;
-  const raw = String(value ?? '').trim();
-  if (!raw) return 0;
-
-  const cleaned = raw.replace(/[^\d.,-]/g, '');
-  if (!cleaned) return 0;
-
-  const hasDot = cleaned.includes('.');
-  const hasComma = cleaned.includes(',');
-
-  let normalized = cleaned;
-  if (hasDot && hasComma) {
-    const lastComma = cleaned.lastIndexOf(',');
-    const lastDot = cleaned.lastIndexOf('.');
-    normalized = lastComma > lastDot
-      ? cleaned.replace(/\./g, '').replace(',', '.')
-      : cleaned.replace(/,/g, '');
-  } else if (hasComma) {
-    normalized = cleaned.replace(',', '.');
-  }
-
-  const parsed = parseFloat(normalized);
-  return Number.isFinite(parsed) ? parsed : 0;
 };
 
 const Cart = ({ cartItems, onRemoveItem, onUpdateQuantity }: CartPageProps) => {
@@ -95,7 +70,7 @@ const Cart = ({ cartItems, onRemoveItem, onUpdateQuantity }: CartPageProps) => {
                   </div>
                 </div>
                 <div className="cart-item-side">
-                  <strong>{new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(linePrice)}</strong>
+                  <strong>{formatCurrency(linePrice)}</strong>
                   <button onClick={() => onRemoveItem(itemKey)} aria-label="Sil">
                     <Trash2 size={16} />
                   </button>
@@ -109,7 +84,7 @@ const Cart = ({ cartItems, onRemoveItem, onUpdateQuantity }: CartPageProps) => {
           <h3>Sipariş Özeti</h3>
           <div className="cart-summary-row">
             <span>Ara Toplam</span>
-            <strong>{new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(total)}</strong>
+            <strong>{formatCurrency(total)}</strong>
           </div>
           <p>Kargo ve indirimler ödeme adımında hesaplanır.</p>
           <button>Siparişi Tamamla</button>

@@ -40,7 +40,7 @@ const MOBILE_NAV_ITEMS = [
   { label: 'GİYİM', href: '/products?category=Giyim' },
   { label: 'AKSESUAR', href: '/products?category=Aksesuar' },
   { label: 'MARKALAR', href: '/products' },
-  { label: 'İNDİRİM', href: '/products' },
+  { label: 'İNDİRİM', href: '/products?discount=true' },
 ];
 
 const readString = (value: unknown) => (typeof value === 'string' ? value : '');

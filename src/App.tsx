@@ -13,12 +13,14 @@ import CartDrawer from './components/CartDrawer';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ProfilePage from './pages/ProfilePage';
+import AuthCallback from './pages/AuthCallback';
 import Footer from './components/Footer';
 import ProductsPage from './pages/ProductsPage';
 import Cart from './pages/Cart';
 import GuestOnlyRoute from './components/GuestOnlyRoute';
 import ProtectedRoute from './components/ProtectedRoute';
 import { supabase } from './lib/supabase';
+import { getPriceDisplayData } from './lib/pricing';
 import { useAuth } from './hooks/useAuth';
 import type { CartItem } from './types/cart';
 import './index.css';
@@ -49,6 +51,7 @@ const normalizeCartItems = (items: CartItem[]) => {
 
     const itemKey = rawItem.cartItemKey || buildCartItemKey(rawItem);
     const quantity = Number(rawItem.cartQuantity) > 0 ? Number(rawItem.cartQuantity) : 1;
+    const priceData = getPriceDisplayData(rawItem.original_price ?? rawItem.price, rawItem.discount_percentage);
 
     if (merged.has(itemKey)) {
       const existing = merged.get(itemKey);
@@ -62,6 +65,9 @@ const normalizeCartItems = (items: CartItem[]) => {
       ...rawItem,
       selectedSize: rawItem.selectedSize || rawItem.size || undefined,
       selectedColor: rawItem.selectedColor || rawItem.color || undefined,
+      price: priceData.discountedPrice,
+      original_price: rawItem.original_price ?? (priceData.hasDiscount ? priceData.originalPrice : undefined),
+      discount_percentage: priceData.discountPercentage,
       cartItemKey: itemKey,
       cartQuantity: quantity,
     });
@@ -143,6 +149,25 @@ function AppContent() {
     setAuthLoading(true);
 
     const bootstrapSession = async () => {
+      const searchParams = new URLSearchParams(window.location.search);
+      const isAuthCallback = window.location.pathname === '/auth/callback';
+      const code = isAuthCallback ? searchParams.get('code') : null;
+
+      if (code) {
+        searchParams.delete('code');
+        window.history.replaceState(
+          {},
+          document.title,
+          `${window.location.pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ''}${window.location.hash}`,
+        );
+
+        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+
+        if (exchangeError) {
+          console.error('OAuth code exchange error:', exchangeError);
+        }
+      }
+
       const { data, error } = await supabase.auth.getSession();
 
       if (error) {
@@ -179,8 +204,12 @@ function AppContent() {
   }, [cart]);
 
   const handleAddToCart = async (product: CartItem) => {
+    const priceData = getPriceDisplayData(product.original_price ?? product.price, product.discount_percentage);
     const nextProduct = {
       ...product,
+      price: priceData.discountedPrice,
+      original_price: product.original_price ?? (priceData.hasDiscount ? priceData.originalPrice : undefined),
+      discount_percentage: priceData.discountPercentage,
       selectedSize: product.selectedSize || product.size || undefined,
       selectedColor: product.selectedColor || product.color || undefined,
     };
@@ -270,7 +299,7 @@ function AppContent() {
         }
       } catch (err) {
         console.error('Stock check error while updating quantity:', err);
-      showToast('Stok bilgisi alınamadı. Lütfen tekrar deneyin.');
+        showToast('Stok bilgisi alınamadı. Lütfen tekrar deneyin.');
         return;
       }
     }
@@ -386,6 +415,8 @@ function AppContent() {
               </ProtectedRoute>
             )}
           />
+
+          <Route path="/auth/callback" element={<AuthCallback />} />
 
           <Route
             path="/account"

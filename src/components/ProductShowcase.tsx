@@ -2,11 +2,13 @@ import { motion } from 'framer-motion';
 import './ProductShowcase.css';
 import { allProducts } from '../data/products';
 import ProductCard from './ProductCard';
+import type { CartItem } from '../types/cart';
+import type { ProductData } from '../types/product';
 
-const products = allProducts;
+const products = allProducts as ProductData[];
 
 interface Props {
-  onAddToCart?: (product: any) => void;
+  onAddToCart?: (product: CartItem) => void;
 }
 
 const ProductShowcase = ({ onAddToCart }: Props) => {
@@ -25,7 +27,7 @@ const ProductShowcase = ({ onAddToCart }: Props) => {
 
       <div className="product-grid">
         {products.map((product) => (
-          <ProductCard key={product.id} product={product as any} onAddToCart={onAddToCart} />
+          <ProductCard key={product.id} product={product} onAddToCart={onAddToCart} />
         ))}
       </div>
     </section>

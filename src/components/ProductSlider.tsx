@@ -2,19 +2,13 @@ import React, { useRef } from 'react';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 import './ProductSlider.css';
 import ProductCard from './ProductCard';
-
-export interface Product {
-  id: string | number;
-  brand: string;
-  name: string;
-  price: string;
-  image: string;
-}
+import type { CartItem } from '../types/cart';
+import type { ProductData } from '../types/product';
 
 interface ProductSliderProps {
   title: string;
-  products: Product[];
-  onAddToCart?: (product: any) => void;
+  products: ProductData[];
+  onAddToCart?: (product: CartItem) => void;
 }
 
 const ProductSlider: React.FC<ProductSliderProps> = ({ title, products, onAddToCart }) => {
@@ -40,7 +34,7 @@ const ProductSlider: React.FC<ProductSliderProps> = ({ title, products, onAddToC
         <div className="slider-container" ref={sliderRef}>
           {products.map((product) => (
             <div className="slider-card-wrap" key={product.id}>
-              <ProductCard product={product as any} onAddToCart={onAddToCart} layoutType="slider" />
+              <ProductCard product={product} onAddToCart={onAddToCart} layoutType="slider" />
             </div>
           ))}
         </div>

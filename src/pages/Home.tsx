@@ -5,14 +5,16 @@ import ProductSlider from '../components/ProductSlider';
 import Categories from '../components/Categories';
 import { supabase } from '../lib/supabase';
 import { Loader2 } from 'lucide-react';
+import type { CartItem } from '../types/cart';
+import type { ProductData } from '../types/product';
 
 interface HomeProps {
-  onAddToCart: (product: any) => void;
+  onAddToCart: (product: CartItem) => void;
 }
 
 const Home = ({ onAddToCart }: HomeProps) => {
-  const [sneakers, setSneakers] = useState<any[]>([]);
-  const [latest, setLatest] = useState<any[]>([]);
+  const [sneakers, setSneakers] = useState<ProductData[]>([]);
+  const [latest, setLatest] = useState<ProductData[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

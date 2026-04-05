@@ -11,7 +11,7 @@ const navItems = [
   { label: 'GİYİM', href: '/products?category=Giyim', category: 'Giyim' },
   { label: 'AKSESUAR', href: '/products?category=Aksesuar', category: 'Aksesuar' },
   { label: 'MARKALAR', href: '/products', category: 'Markalar' },
-  { label: 'İNDİRİM', href: '/products', category: 'İndirim' },
+  { label: 'İNDİRİM', href: '/products?discount=true', category: 'İndirim' },
 ];
 
 const Navbar = ({ isOpen }: NavbarProps) => {
@@ -21,6 +21,12 @@ const Navbar = ({ isOpen }: NavbarProps) => {
     const params = new URLSearchParams(location.search);
     const category = params.get('category');
     const sort = params.get('sort');
+    const discount = params.get('discount');
+
+    if (discount === 'true') {
+      return 'İndirim';
+    }
+
     return category || (sort === 'newest' ? 'Yeniler' : null);
   }, [location.search]);
 

@@ -72,6 +72,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     syncSession(data.session ?? null);
   }, [syncSession]);
 
+  const signInWithGoogle = useCallback(async (redirectTo?: string) => {
+    setAuthError(null);
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo,
+        scopes: 'openid email profile',
+      },
+    });
+
+    if (error) {
+      const nextMessage = normalizeAuthErrorMessage(error.message);
+      setAuthError(nextMessage);
+      throw new Error(nextMessage);
+    }
+  }, []);
+
   const signUp = useCallback(async ({ email, password, firstName, lastName }: SignUpPayload): Promise<SignUpResult> => {
     setAuthError(null);
 
@@ -122,11 +140,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     authError,
     signUp,
     signIn,
+    signInWithGoogle,
     signOut,
     syncSession,
     setAuthLoading,
     clearAuthError,
-  }), [authError, clearAuthError, isAuthLoading, session, setAuthLoading, signIn, signOut, signUp, syncSession, user]);
+  }), [authError, clearAuthError, isAuthLoading, session, setAuthLoading, signIn, signInWithGoogle, signOut, signUp, syncSession, user]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

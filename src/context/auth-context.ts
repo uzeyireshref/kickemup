@@ -24,6 +24,7 @@ export type AuthContextValue = {
   authError: string | null;
   signUp: (payload: SignUpPayload) => Promise<SignUpResult>;
   signIn: (payload: SignInPayload) => Promise<void>;
+  signInWithGoogle: (redirectTo?: string) => Promise<void>;
   signOut: () => Promise<void>;
   syncSession: (session: Session | null) => void;
   setAuthLoading: (value: boolean) => void;

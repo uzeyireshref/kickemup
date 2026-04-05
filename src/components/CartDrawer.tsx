@@ -1,6 +1,7 @@
 ﻿import { AnimatePresence, motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Minus, Plus, Trash2, X } from 'lucide-react';
+import { formatCurrency, parsePrice } from '../lib/pricing';
 import type { CartItem } from '../types/cart';
 import './CartDrawer.css';
 
@@ -17,32 +18,6 @@ const getCartItemKey = (item: CartItem) => {
   const size = item?.selectedSize || item?.size || '';
   const color = item?.selectedColor || item?.color || '';
   return `${item?.id}::${size}::${color}`;
-};
-
-const parsePrice = (value: unknown) => {
-  if (typeof value === 'number') return value;
-  const raw = String(value ?? '').trim();
-  if (!raw) return 0;
-
-  const cleaned = raw.replace(/[^\d.,-]/g, '');
-  if (!cleaned) return 0;
-
-  const hasDot = cleaned.includes('.');
-  const hasComma = cleaned.includes(',');
-
-  let normalized = cleaned;
-  if (hasDot && hasComma) {
-    const lastComma = cleaned.lastIndexOf(',');
-    const lastDot = cleaned.lastIndexOf('.');
-    normalized = lastComma > lastDot
-      ? cleaned.replace(/\./g, '').replace(',', '.')
-      : cleaned.replace(/,/g, '');
-  } else if (hasComma) {
-    normalized = cleaned.replace(',', '.');
-  }
-
-  const parsed = parseFloat(normalized);
-  return Number.isFinite(parsed) ? parsed : 0;
 };
 
 const CartDrawer = ({ isOpen, onClose, cartItems, onRemoveItem, onUpdateQuantity }: CartDrawerProps) => {
@@ -89,9 +64,7 @@ const CartDrawer = ({ isOpen, onClose, cartItems, onRemoveItem, onUpdateQuantity
                   const cartItemKey = getCartItemKey(item);
                   const brandName = item.brands?.name || item.brand || 'Ürün';
                   const displayImage = item.product_images?.[0]?.url || item.image_url || item.image || '';
-                  const displayPrice = typeof item.price === 'number'
-                    ? new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(item.price)
-                    : item.price;
+                  const displayPrice = formatCurrency(item.price);
                   const maxStock = Number.isFinite(Number(item.maxStock)) ? Number(item.maxStock) : null;
                   const disableIncrease = maxStock !== null && (item.cartQuantity || 1) >= maxStock;
 
@@ -132,7 +105,7 @@ const CartDrawer = ({ isOpen, onClose, cartItems, onRemoveItem, onUpdateQuantity
               <div className="cart-footer">
                 <div className="cart-total">
                   <span>Toplam</span>
-                  <span>{new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(calculateTotal())}</span>
+                  <span>{formatCurrency(calculateTotal())}</span>
                 </div>
                 <Link className="checkout-btn" to="/cart" onClick={onClose}>Siparişi Tamamla</Link>
               </div>

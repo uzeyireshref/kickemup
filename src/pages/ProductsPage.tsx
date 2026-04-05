@@ -5,11 +5,24 @@ import { ChevronDown, ChevronUp, SlidersHorizontal, X, Check, Loader2, AlertCirc
 import './ProductsPage.css';
 import { supabase } from '../lib/supabase';
 import ProductCard from '../components/ProductCard';
-import type { ProductData } from '../components/ProductCard';
+import type { CartItem } from '../types/cart';
+import type { ProductData, ProductImage, ProductRelation } from '../types/product';
 
 interface ProductsPageProps {
-  onAddToCart?: (product: any) => void;
+  onAddToCart?: (product: CartItem) => void;
 }
+
+type VariantProductIdRow = {
+  product_id: string | number | null;
+};
+
+type ProductQueryRow = ProductData & {
+  category_details?: ProductRelation | ProductRelation[];
+  brand_details?: ProductRelation | ProductRelation[];
+  categories?: ProductRelation | ProductRelation[];
+  brands?: ProductRelation | ProductRelation[];
+  product_images?: ProductImage[];
+};
 
 const filterCategories = [
   {
@@ -109,6 +122,16 @@ const buildBrandParam = (brands: string[]): string => {
   return values.join(',');
 };
 
+const omitFilterKey = (filters: Record<string, string[]>, key: string) => {
+  const nextFilters = { ...filters };
+  delete nextFilters[key];
+  return nextFilters;
+};
+
+const getRelation = (value?: ProductRelation | ProductRelation[]) => (
+  Array.isArray(value) ? value[0] : value
+);
+
 const ProductsPage: React.FC<ProductsPageProps> = ({ onAddToCart }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState<ProductData[]>([]);
@@ -139,8 +162,7 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onAddToCart }) => {
           hasChange = true;
         }
       } else if (currentUrunTipi.length === 1 && urunTipiOptions?.includes(currentUrunTipi[0])) {
-        const { urunTipi: _, ...rest } = nextFilters;
-        nextFilters = rest;
+        nextFilters = omitFilterKey(nextFilters, 'urunTipi');
         hasChange = true;
       }
 
@@ -155,8 +177,7 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onAddToCart }) => {
           hasChange = true;
         }
       } else if (currentBrands.length > 0) {
-        const { marka: _, ...rest } = nextFilters;
-        nextFilters = rest;
+        nextFilters = omitFilterKey(nextFilters, 'marka');
         hasChange = true;
       }
 
@@ -186,7 +207,7 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onAddToCart }) => {
         let variantProductIds: Array<string | number> | null = null;
 
         if (sizeFilter.length > 0 || colorFilter.length > 0) {
-          let variantsQuery: any = supabase.from('product_variants').select('product_id');
+          let variantsQuery = supabase.from('product_variants').select('product_id');
 
           if (sizeFilter.length > 0) {
             variantsQuery = variantsQuery.in('size', sizeFilter);
@@ -199,8 +220,13 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onAddToCart }) => {
           const { data: variantsData, error: variantsError } = await variantsQuery;
           if (variantsError) throw variantsError;
 
+          const typedVariantRows = (variantsData || []) as VariantProductIdRow[];
           variantProductIds = Array.from(
-            new Set((variantsData || []).map((row: any) => row.product_id).filter(Boolean))
+            new Set(
+              typedVariantRows
+                .map((row) => row.product_id)
+                .filter((productId): productId is string | number => productId !== null && productId !== undefined)
+            )
           );
 
           if (variantProductIds.length === 0) {
@@ -209,13 +235,14 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onAddToCart }) => {
           }
         }
 
-        let productsQuery: any = supabase
+        let productsQuery = supabase
           .from('products')
           .select(`
             id,
             slug,
             name,
             price,
+            discount_percentage,
             created_at,
             brands!inner(name),
             categories!inner(name),
@@ -228,6 +255,10 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onAddToCart }) => {
 
         if (typeFilter.length > 0) {
           productsQuery = productsQuery.in('categories.name', typeFilter);
+        }
+
+        if (searchParams.get('discount') === 'true') {
+          productsQuery = productsQuery.gt('discount_percentage', 0);
         }
 
         if (variantProductIds) {
@@ -245,20 +276,19 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onAddToCart }) => {
         const { data, error: sbError } = await productsQuery;
         if (sbError) throw sbError;
 
-        const mappedProducts = (data || []).map((p: any) => {
-          const cat = p.categories || p.category || p.category_details || {};
-          const catData = Array.isArray(cat) ? cat[0] : cat;
-          const brand = p.brands || p.brand || p.brand_details || {};
-          const brandData = Array.isArray(brand) ? brand[0] : brand;
-          const mainImage = Array.isArray(p.product_images)
-            ? (p.product_images.find((img: any) => img.is_main)?.url || p.product_images[0]?.url || '')
+        const typedProducts = (data || []) as ProductQueryRow[];
+        const mappedProducts: ProductData[] = typedProducts.map((productRow) => {
+          const categoryData = getRelation(productRow.categories || productRow.category_details);
+          const brandData = getRelation(productRow.brands || productRow.brand_details);
+          const mainImage = Array.isArray(productRow.product_images)
+            ? (productRow.product_images.find((img) => img.is_main)?.url || productRow.product_images[0]?.url || '')
             : '';
 
           return {
-            ...p,
+            ...productRow,
             brand_name: brandData?.name || '',
-            category_name: catData?.name || '',
-            image_url: p.image_url || mainImage,
+            category_name: categoryData?.name || '',
+            image_url: productRow.image_url || mainImage,
             main_image: mainImage
           };
         });
@@ -266,7 +296,8 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onAddToCart }) => {
         if (isMounted) {
           setProducts(mappedProducts);
         }
-      } catch (err: any) {
+      } catch (errorRaw: unknown) {
+        const err = errorRaw as Error;
         console.error('Supabase fetch error:', err);
         if (isMounted) {
           setError(err.message || 'Ürünler yüklenirken bir hata oluştu.');
@@ -281,11 +312,13 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onAddToCart }) => {
     return () => {
       isMounted = false;
     };
-  }, [selectedFilters, sortValue]);
+  }, [searchParams, selectedFilters, sortValue]);
 
   const currentCategory = searchParams.get('category');
+  const isDiscountPage = searchParams.get('discount') === 'true';
   const pageTitle = currentCategory ? currentCategory.toUpperCase() : 'TÜM ÜRÜNLER';
   const activeTypes = selectedFilters.urunTipi || [];
+  const resolvedPageTitle = isDiscountPage ? 'İNDİRİM' : pageTitle;
 
   const isSneakerContext = currentCategory === 'Sneaker' || activeTypes.some(t => ['Sneaker', 'Bot', 'Terlik', 'Sandalet'].includes(t));
   const isGiyimContext = currentCategory === 'Giyim' || activeTypes.some(t => ['Giyim', 'T-Shirt', 'Sweatshirt', 'Hoodie', 'Pantolon', 'Mont', 'Şort', 'Gömlek', 'Ceket'].includes(t));
@@ -345,7 +378,7 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onAddToCart }) => {
 
   const clearAllFilters = () => {
     setSelectedFilters({});
-    setSearchParams({});
+    setSearchParams(isDiscountPage ? { discount: 'true' } : {});
   };
 
   const totalActiveFilters = Object.values(selectedFilters).reduce((sum, arr) => sum + arr.length, 0);
@@ -443,11 +476,11 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ onAddToCart }) => {
       <div className="breadcrumb">
         <Link to="/" className="breadcrumb-link">Anasayfa</Link>
         <span className="breadcrumb-separator">›</span>
-        <span>{pageTitle}</span>
+        <span>{resolvedPageTitle}</span>
       </div>
 
       <div className="products-header">
-        <h1 className="products-title">{pageTitle}</h1>
+        <h1 className="products-title">{resolvedPageTitle}</h1>
         <div className="products-header-right">
           <button className="mobile-filter-btn" onClick={() => setMobileFilterOpen(true)}>
             <SlidersHorizontal size={18} />

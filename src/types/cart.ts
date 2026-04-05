@@ -13,6 +13,8 @@ export type CartItem = {
   image?: string;
   image_url?: string;
   price?: number | string;
+  original_price?: number | string;
+  discount_percentage?: number | null;
   product_images?: Array<{ url?: string }>;
   brands?: { name?: string };
   [key: string]: unknown;
